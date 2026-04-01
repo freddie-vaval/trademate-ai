@@ -1,236 +1,314 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import AddCustomerModal from '@/components/AddCustomerModal';
+import { formatMoney, fullName, useCustomers, useInvoices, useJobs } from '@/lib/data-store';
+import { Customer, CustomerStatus } from '@/lib/types';
+
+function statusClass(status: CustomerStatus): string {
+  switch (status) {
+    case 'vip':
+      return 'bg-purple-100 text-purple-700';
+    case 'active':
+      return 'bg-green-100 text-green-700';
+    case 'prospect':
+      return 'bg-blue-100 text-blue-700';
+    default:
+      return 'bg-gray-100 text-gray-700';
+  }
+}
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState([
-    { id: 1, name: 'John Smith', phone: '07700 900123', email: 'john@email.com', address: '42 Oak Street', jobs: 3, spent: '£420', lastJob: '2026-03-14', status: 'active', notes: 'Regular customer, prefers morning appointments' },
-    { id: 2, name: 'Sarah Jones', phone: '07700 900456', email: 'sarah@email.com', address: '15 Maple Ave', jobs: 1, spent: '£85', lastJob: '2026-03-10', status: 'active', notes: '' },
-    { id: 3, name: 'Mike Brown', phone: '07700 900789', email: 'mike@email.com', address: '8 Pine Road', jobs: 5, spent: '£890', lastJob: '2026-03-12', status: 'vip', notes: 'Landlord with multiple properties' },
-    { id: 4, name: 'Emma Wilson', phone: '07700 900111', email: 'emma@email.com', address: '23 Cedar Lane', jobs: 2, spent: '£350', lastJob: '2026-03-08', status: 'active', notes: '' },
-    { id: 5, name: 'David Lee', phone: '07700 900222', email: 'david@email.com', address: '67 Birch Way', jobs: 8, spent: '£1,240', lastJob: '2026-03-13', status: 'vip', notes: 'Very satisfied customer, refers friends' },
-  ]);
-
+  const [customers, setCustomers, customersHydrated] = useCustomers();
+  const [jobs, setJobs, jobsHydrated] = useJobs();
+  const [invoices, setInvoices, invoicesHydrated] = useInvoices();
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | CustomerStatus>('all');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
-  // Mock job history for detail view
-  const jobHistory = [
-    { id: 1, date: '2026-03-14', service: 'Boiler Service', price: '£120', status: 'completed' },
-    { id: 2, date: '2025-11-20', service: 'Plumbing Repair', price: '£85', status: 'completed' },
-    { id: 3, date: '2025-06-15', service: 'Gas Safety Check', price: '£150', status: 'completed' },
-  ];
+  const ready = customersHydrated && jobsHydrated && invoicesHydrated;
+  const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId) ?? null;
 
-  const filtered = customers.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone.includes(search) ||
-    c.address.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredCustomers = useMemo(() => {
+    const needle = search.trim().toLowerCase();
 
-  const addCustomer = (customer: any) => {
-    setCustomers([...customers, customer]);
+    return customers.filter((customer) => {
+      const name = fullName(customer).toLowerCase();
+      const matchesSearch =
+        needle.length === 0 ||
+        name.includes(needle) ||
+        customer.phone.includes(search) ||
+        customer.email.toLowerCase().includes(needle) ||
+        customer.postcode.toLowerCase().includes(needle);
+      const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [customers, search, statusFilter]);
+
+  const customerStats = useMemo(() => {
+    const jobsByCustomer = new Map<string, number>();
+    const spendByCustomer = new Map<string, number>();
+
+    for (const job of jobs) {
+      jobsByCustomer.set(job.customerId, (jobsByCustomer.get(job.customerId) ?? 0) + 1);
+    }
+
+    for (const invoice of invoices) {
+      if (invoice.status !== 'paid') continue;
+      spendByCustomer.set(
+        invoice.customerId,
+        (spendByCustomer.get(invoice.customerId) ?? 0) + invoice.total
+      );
+    }
+
+    return { jobsByCustomer, spendByCustomer };
+  }, [invoices, jobs]);
+
+  const addCustomer = (customer: Customer) => {
+    setCustomers([customer, ...customers]);
   };
+
+  const markVip = (customerId: string) => {
+    setCustomers(
+      customers.map((customer) =>
+        customer.id === customerId ? { ...customer, status: 'vip' } : customer
+      )
+    );
+  };
+
+  if (!ready) {
+    return <div className="min-h-screen bg-gray-50 p-8 text-gray-600">Loading customers...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Customer CRM</h1>
-            <p className="text-gray-600">Manage your customer database</p>
+            <a href="/" className="mb-2 inline-block text-sm text-blue-600 hover:text-blue-800">← Dashboard</a>
+            <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
+            <p className="text-gray-600">CRM with full history, contact details, and spend tracking</p>
           </div>
-          <button 
+          <button
             onClick={() => setShowAddModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
+            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
           >
             + Add Customer
           </button>
         </div>
 
-        {/* Search & Filters */}
-        <div className="bg-white rounded-xl shadow-sm border p-4 mb-6">
-          <div className="flex gap-4">
-            <input
-              type="text"
-              placeholder="Search by name, phone, or address..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 px-4 py-2 border rounded-lg"
-            />
-            <select className="px-4 py-2 border rounded-lg">
-              <option>All Customers</option>
-              <option>Active</option>
-              <option>VIP</option>
-              <option>New This Month</option>
-            </select>
+        <div className="mb-6 grid grid-cols-1 gap-4 rounded-xl border bg-white p-4 md:grid-cols-3">
+          <input
+            type="text"
+            placeholder="Search name, phone, email, postcode..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="w-full rounded-lg border px-4 py-2"
+          />
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as 'all' | CustomerStatus)}
+            className="rounded-lg border px-4 py-2"
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="vip">VIP</option>
+            <option value="prospect">Prospect</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <div className="rounded-lg bg-slate-50 px-4 py-2 text-sm text-slate-700">
+            Total customers: <span className="font-semibold">{customers.length}</span>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border p-4">
-            <p className="text-sm text-gray-500">Total Customers</p>
-            <p className="text-2xl font-bold">{customers.length}</p>
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="rounded-xl border bg-white p-4">
+            <p className="text-sm text-gray-500">Active</p>
+            <p className="text-2xl font-bold text-green-600">
+              {customers.filter((customer) => customer.status === 'active').length}
+            </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-4">
-            <p className="text-sm text-gray-500">New This Month</p>
-            <p className="text-2xl font-bold text-green-600">+2</p>
+          <div className="rounded-xl border bg-white p-4">
+            <p className="text-sm text-gray-500">VIP</p>
+            <p className="text-2xl font-bold text-purple-600">
+              {customers.filter((customer) => customer.status === 'vip').length}
+            </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-4">
-            <p className="text-sm text-gray-500">VIP Customers</p>
-            <p className="text-2xl font-bold text-purple-600">{customers.filter(c => c.status === 'vip').length}</p>
+          <div className="rounded-xl border bg-white p-4">
+            <p className="text-sm text-gray-500">Prospects</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {customers.filter((customer) => customer.status === 'prospect').length}
+            </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-4">
-            <p className="text-sm text-gray-500">Avg. Job Value</p>
-            <p className="text-2xl font-bold">£185</p>
+          <div className="rounded-xl border bg-white p-4">
+            <p className="text-sm text-gray-500">Revenue (Paid)</p>
+            <p className="text-2xl font-bold text-emerald-600">
+              {formatMoney(invoices.filter((invoice) => invoice.status === 'paid').reduce((sum, invoice) => sum + invoice.total, 0))}
+            </p>
           </div>
         </div>
 
-        {/* Customer Table */}
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="overflow-hidden rounded-xl border bg-white">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="border-b bg-gray-50">
               <tr>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Customer</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Contact</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Address</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Jobs</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Total Spent</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Status</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Actions</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Customer</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Contact</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Address</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Jobs</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Total Spent</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map((customer) => (
-                <tr key={customer.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <p className="font-medium text-gray-900">{customer.name}</p>
-                    <p className="text-sm text-gray-500">Last: {customer.lastJob}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm">📞 {customer.phone}</p>
-                    <p className="text-sm text-gray-500">{customer.email}</p>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{customer.address}</td>
-                  <td className="px-6 py-4 font-medium">{customer.jobs}</td>
-                  <td className="px-6 py-4 font-medium text-green-600">{customer.spent}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      customer.status === 'vip' ? 'bg-purple-100 text-purple-700' :
-                      customer.status === 'active' ? 'bg-green-100 text-green-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {customer.status.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button 
-                      onClick={() => setSelectedCustomer(customer)}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filteredCustomers.map((customer) => {
+                const jobCount = customerStats.jobsByCustomer.get(customer.id) ?? 0;
+                const totalSpent = customerStats.spendByCustomer.get(customer.id) ?? 0;
+
+                return (
+                  <tr key={customer.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <p className="font-medium text-gray-900">{fullName(customer)}</p>
+                      <p className="text-sm text-gray-500">{customer.email}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      <p>{customer.phone}</p>
+                      {customer.altPhone && <p>{customer.altPhone}</p>}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      <p>{customer.addressLine1}</p>
+                      <p>
+                        {customer.city} {customer.postcode}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 font-medium">{jobCount}</td>
+                    <td className="px-6 py-4 font-medium text-emerald-700">{formatMoney(totalSpent)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusClass(customer.status)}`}>
+                        {customer.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setSelectedCustomerId(customer.id)}
+                          className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                        >
+                          View
+                        </button>
+                        {customer.status !== 'vip' && (
+                          <button
+                            onClick={() => markVip(customer.id)}
+                            className="text-sm font-medium text-purple-600 hover:text-purple-800"
+                          >
+                            Mark VIP
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* Add Customer Modal */}
-        <AddCustomerModal 
-          isOpen={showAddModal} 
-          onClose={() => setShowAddModal(false)} 
-          onAdd={addCustomer}
+      <AddCustomerModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={addCustomer} />
+
+      {selectedCustomer && (
+        <CustomerDetailsModal
+          customer={selectedCustomer}
+          jobs={jobs.filter((job) => job.customerId === selectedCustomer.id)}
+          spent={customerStats.spendByCustomer.get(selectedCustomer.id) ?? 0}
+          onClose={() => setSelectedCustomerId(null)}
         />
+      )}
+    </div>
+  );
+}
 
-        {/* Customer Details Modal */}
-        {selectedCustomer && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-start mb-6">
+function CustomerDetailsModal({
+  customer,
+  jobs,
+  spent,
+  onClose,
+}: {
+  customer: Customer;
+  jobs: ReturnType<typeof useJobs>[0];
+  spent: number;
+  onClose: () => void;
+}) {
+  const sortedJobs = [...jobs].sort((a, b) => b.bookedDate.localeCompare(a.bookedDate));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6">
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{fullName(customer)}</h2>
+            <span className={`mt-2 inline-block rounded-full px-2 py-1 text-xs font-semibold ${statusClass(customer.status)}`}>
+              {customer.status.toUpperCase()}
+            </span>
+          </div>
+          <button onClick={onClose} className="rounded-md px-2 py-1 text-gray-500 hover:bg-gray-100">
+            Close
+          </button>
+        </div>
+
+        <div className="mb-6 grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Phone</p>
+            <p className="font-medium">{customer.phone}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Email</p>
+            <p className="font-medium">{customer.email}</p>
+          </div>
+          <div className="col-span-2">
+            <p className="text-sm text-gray-500">Address</p>
+            <p className="font-medium">
+              {customer.addressLine1}
+              {customer.addressLine2 ? `, ${customer.addressLine2}` : ''}, {customer.city} {customer.postcode}
+            </p>
+          </div>
+          {customer.notes && (
+            <div className="col-span-2">
+              <p className="text-sm text-gray-500">Notes</p>
+              <p className="font-medium">{customer.notes}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t pt-6">
+          <h3 className="mb-4 font-semibold text-gray-900">Job History</h3>
+          <div className="space-y-3">
+            {sortedJobs.length === 0 && (
+              <p className="rounded-lg bg-gray-50 p-3 text-sm text-gray-500">No jobs yet for this customer.</p>
+            )}
+            {sortedJobs.map((job) => (
+              <div key={job.id} className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
                 <div>
-                  <h2 className="text-2xl font-bold">{selectedCustomer.name}</h2>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium mt-1 inline-block ${
-                    selectedCustomer.status === 'vip' ? 'bg-purple-100 text-purple-700' :
-                    selectedCustomer.status === 'active' ? 'bg-green-100 text-green-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {selectedCustomer.status.toUpperCase()}
-                  </span>
+                  <p className="font-medium text-gray-900">{job.serviceType}</p>
+                  <p className="text-sm text-gray-500">
+                    {job.bookedDate} at {job.bookedTime}
+                  </p>
                 </div>
-                <button onClick={() => setSelectedCustomer(null)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <p className="font-semibold text-emerald-700">{formatMoney(job.price)}</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <p className="text-sm text-gray-500">Phone</p>
-                  <p className="font-medium">{selectedCustomer.phone}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium">{selectedCustomer.email}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-sm text-gray-500">Address</p>
-                  <p className="font-medium">{selectedCustomer.address}</p>
-                </div>
-                {selectedCustomer.notes && (
-                  <div className="col-span-2">
-                    <p className="text-sm text-gray-500">Notes</p>
-                    <p className="font-medium">{selectedCustomer.notes}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Job History */}
-              <div className="border-t pt-6">
-                <h3 className="font-semibold mb-4">Job History</h3>
-                <div className="space-y-3">
-                  {jobHistory.map((job) => (
-                    <div key={job.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">{job.service}</p>
-                        <p className="text-sm text-gray-500">{job.date}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-green-600">{job.price}</p>
-                        <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                          {job.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Total Spent</span>
-                    <span className="font-bold text-blue-600">{selectedCustomer.spent}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-6 border-t mt-6">
-                <button 
-                  onClick={() => setSelectedCustomer(null)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition"
-                >
-                  Close
-                </button>
-                <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                  Edit Customer
-                </button>
-              </div>
+            ))}
+          </div>
+          <div className="mt-4 rounded-lg bg-blue-50 p-4">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-blue-900">Total Spent (Paid Invoices)</span>
+              <span className="text-xl font-bold text-blue-700">{formatMoney(spent)}</span>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
 }
+

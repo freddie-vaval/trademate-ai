@@ -59,6 +59,7 @@ export default function CalendarPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <div>
+            <a href="/" style={{ display: 'inline-block', marginBottom: '0.25rem', fontSize: '0.875rem', color: '#2563eb' }}>← Dashboard</a>
             <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827' }}>Schedule</h1>
             <p style={{ color: '#6b7280' }}>Drag jobs to reschedule</p>
           </div>

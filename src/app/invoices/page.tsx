@@ -1,211 +1,443 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import {
+  formatMoney,
+  fullName,
+  useCustomers,
+  useInvoices,
+  useJobs,
+  useQuotes,
+} from '@/lib/data-store';
+import { Customer, Invoice, InvoiceStatus } from '@/lib/types';
+
+function statusClass(status: InvoiceStatus): string {
+  switch (status) {
+    case 'paid':
+      return 'bg-green-100 text-green-700';
+    case 'sent':
+      return 'bg-blue-100 text-blue-700';
+    case 'overdue':
+      return 'bg-red-100 text-red-700';
+    default:
+      return 'bg-gray-100 text-gray-700';
+  }
+}
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState([
-    { id: 'INV-001', customer: 'John Smith', email: 'john@email.com', job: 'Boiler Service', amount: '£120', status: 'paid', date: '2026-03-14', dueDate: '2026-03-28' },
-    { id: 'INV-002', customer: 'Sarah Jones', email: 'sarah@email.com', job: 'Plumbing Repair', amount: '£85', status: 'sent', date: '2026-03-10', dueDate: '2026-03-24' },
-    { id: 'INV-003', customer: 'Mike Brown', email: 'mike@email.com', job: 'Gas Safety Check', amount: '£150', status: 'overdue', date: '2026-02-28', dueDate: '2026-03-14' },
-    { id: 'INV-004', customer: 'Emma Wilson', email: 'emma@email.com', job: 'New Radiator', amount: '£350', status: 'draft', date: '2026-03-15', dueDate: '2026-03-29' },
-    { id: 'INV-005', customer: 'David Lee', email: 'david@email.com', job: 'Boiler Repair', amount: '£200', status: 'paid', date: '2026-03-13', dueDate: '2026-03-27' },
-  ]);
-
-  const [filter, setFilter] = useState('all');
+  const [customers, setCustomers, customersHydrated] = useCustomers();
+  const [jobs, setJobs, jobsHydrated] = useJobs();
+  const [quotes, setQuotes, quotesHydrated] = useQuotes();
+  const [invoices, setInvoices, invoicesHydrated] = useInvoices();
+  const [filter, setFilter] = useState<'all' | InvoiceStatus>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [showCustomerEdit, setShowCustomerEdit] = useState(false);
 
-  const filtered = filter === 'all' ? invoices : invoices.filter(i => i.status === filter);
+  const ready = customersHydrated && jobsHydrated && quotesHydrated && invoicesHydrated;
+  const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId) ?? null;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid': return 'bg-green-100 text-green-700';
-      case 'sent': return 'bg-blue-100 text-blue-700';
-      case 'overdue': return 'bg-red-100 text-red-700';
-      case 'draft': return 'bg-gray-100 text-gray-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
+  const filteredInvoices = filter === 'all' ? invoices : invoices.filter((invoice) => invoice.status === filter);
+
+  const stats = useMemo(() => {
+    const total = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
+    const paid = invoices.filter((invoice) => invoice.status === 'paid').reduce((sum, invoice) => sum + invoice.total, 0);
+    const outstanding = invoices
+      .filter((invoice) => invoice.status === 'sent')
+      .reduce((sum, invoice) => sum + invoice.total, 0);
+    const overdue = invoices
+      .filter((invoice) => invoice.status === 'overdue')
+      .reduce((sum, invoice) => sum + invoice.total, 0);
+    return { total, paid, outstanding, overdue };
+  }, [invoices]);
+
+  const setInvoiceStatus = (invoiceId: string, status: InvoiceStatus) => {
+    setInvoices(
+      invoices.map((invoice) =>
+        invoice.id === invoiceId ? { ...invoice, status, updatedAt: new Date().toISOString() } : invoice
+      )
+    );
   };
 
-  const markAsPaid = (id: string) => {
-    setInvoices(invoices.map(inv => 
-      inv.id === id ? { ...inv, status: 'paid' } : inv
-    ));
+  const saveCustomer = (customer: Customer) => {
+    setCustomers(customers.map((entry) => (entry.id === customer.id ? customer : entry)));
+    setShowCustomerEdit(false);
   };
+
+  const createInvoice = (invoice: Invoice) => {
+    setInvoices([invoice, ...invoices]);
+    setShowCreateModal(false);
+  };
+
+  if (!ready) {
+    return <div className="min-h-screen bg-gray-50 p-8 text-gray-600">Loading invoices...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
+            <a href="/" className="mb-2 inline-block text-sm text-blue-600 hover:text-blue-800">← Dashboard</a>
             <h1 className="text-3xl font-bold text-gray-900">Invoices</h1>
-            <p className="text-gray-600">Manage quotes and invoices</p>
+            <p className="text-gray-600">Track Draft, Sent, Paid, and Overdue invoices</p>
           </div>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
-          >
-            + Create Invoice
-          </button>
+          <div className="flex gap-3">
+            <select
+              value={selectedCustomerId}
+              onChange={(event) => setSelectedCustomerId(event.target.value)}
+              className="rounded-lg border px-3 py-2 text-sm"
+            >
+              <option value="">Select customer</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {fullName(customer)}
+                </option>
+              ))}
+            </select>
+            <button
+              disabled={!selectedCustomer}
+              onClick={() => setShowCustomerEdit(true)}
+              className="rounded-lg border px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-gray-400"
+            >
+              Edit Customer
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
+            >
+              + Create Invoice
+            </button>
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border p-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="rounded-xl border bg-white p-4">
             <p className="text-sm text-gray-500">Total Invoiced</p>
-            <p className="text-2xl font-bold">£{invoices.reduce((sum, inv) => sum + parseFloat(inv.amount.replace('£', '')), 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold">{formatMoney(stats.total)}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="rounded-xl border bg-white p-4">
             <p className="text-sm text-gray-500">Paid</p>
-            <p className="text-2xl font-bold text-green-600">£{invoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + parseFloat(inv.amount.replace('£', '')), 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-600">{formatMoney(stats.paid)}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="rounded-xl border bg-white p-4">
             <p className="text-sm text-gray-500">Outstanding</p>
-            <p className="text-2xl font-bold text-yellow-600">£{invoices.filter(i => i.status === 'sent').reduce((sum, inv) => sum + parseFloat(inv.amount.replace('£', '')), 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-blue-600">{formatMoney(stats.outstanding)}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="rounded-xl border bg-white p-4">
             <p className="text-sm text-gray-500">Overdue</p>
-            <p className="text-2xl font-bold text-red-600">£{invoices.filter(i => i.status === 'overdue').reduce((sum, inv) => sum + parseFloat(inv.amount.replace('£', '')), 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-red-600">{formatMoney(stats.overdue)}</p>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border p-4 mb-6">
-          <div className="flex gap-2">
-            {['all', 'draft', 'sent', 'paid', 'overdue'].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  filter === f 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
-          </div>
+        <div className="mb-6 flex gap-2 rounded-xl border bg-white p-3">
+          {['all', 'draft', 'sent', 'paid', 'overdue'].map((value) => (
+            <button
+              key={value}
+              onClick={() => setFilter(value as 'all' | InvoiceStatus)}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                filter === value ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {value.charAt(0).toUpperCase() + value.slice(1)}
+            </button>
+          ))}
         </div>
 
-        {/* Invoices Table */}
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="overflow-hidden rounded-xl border bg-white">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="border-b bg-gray-50">
               <tr>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Invoice</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Customer</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Job</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Amount</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Date</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Due</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Status</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Actions</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Invoice</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Customer</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Source</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Amount</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Issue</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Due</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map((invoice) => (
-                <tr key={invoice.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <p className="font-medium text-gray-900">{invoice.id}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="font-medium">{invoice.customer}</p>
-                    <p className="text-sm text-gray-500">{invoice.email}</p>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">{invoice.job}</td>
-                  <td className="px-6 py-4 font-bold text-gray-900">{invoice.amount}</td>
-                  <td className="px-6 py-4 text-gray-600">{invoice.date}</td>
-                  <td className="px-6 py-4">
-                    <span className={invoice.status === 'overdue' ? 'text-red-600 font-medium' : 'text-gray-600'}>
+              {filteredInvoices.map((invoice) => {
+                const customer = customers.find((entry) => entry.id === invoice.customerId);
+                const sourceLabel = invoice.jobId ? `Job ${invoice.jobId}` : invoice.quoteId ? `Quote ${invoice.quoteId}` : 'Manual';
+
+                return (
+                  <tr key={invoice.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{invoice.id}</td>
+                    <td className="px-6 py-4">
+                      <p className="font-medium">{customer ? fullName(customer) : 'Unknown'}</p>
+                      <p className="text-sm text-gray-500">{customer?.email}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{sourceLabel}</td>
+                    <td className="px-6 py-4 font-semibold text-gray-900">{formatMoney(invoice.total)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{invoice.issueDate}</td>
+                    <td className={`px-6 py-4 text-sm ${invoice.status === 'overdue' ? 'font-semibold text-red-600' : 'text-gray-600'}`}>
                       {invoice.dueDate}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
-                      {invoice.status.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        View
-                      </button>
-                      {invoice.status !== 'paid' && (
-                        <button 
-                          onClick={() => markAsPaid(invoice.id)}
-                          className="text-green-600 hover:text-green-800 text-sm font-medium"
-                        >
-                          Mark Paid
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusClass(invoice.status)}`}>
+                        {invoice.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-3 text-xs font-medium">
+                        {invoice.status === 'draft' && (
+                          <button onClick={() => setInvoiceStatus(invoice.id, 'sent')} className="text-blue-600 hover:text-blue-800">
+                            Send
+                          </button>
+                        )}
+                        {invoice.status !== 'paid' && (
+                          <button onClick={() => setInvoiceStatus(invoice.id, 'paid')} className="text-green-600 hover:text-green-800">
+                            Mark Paid
+                          </button>
+                        )}
+                        {invoice.status !== 'overdue' && invoice.status !== 'paid' && (
+                          <button onClick={() => setInvoiceStatus(invoice.id, 'overdue')} className="text-red-600 hover:text-red-800">
+                            Mark Overdue
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* Create Invoice Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Create Invoice</h2>
-                <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+      {showCreateModal && (
+        <CreateInvoiceModal
+          customers={customers}
+          jobs={jobs}
+          quotes={quotes}
+          onClose={() => setShowCreateModal(false)}
+          onCreate={createInvoice}
+        />
+      )}
+
+      {showCustomerEdit && selectedCustomer && (
+        <EditCustomerModal customer={selectedCustomer} onClose={() => setShowCustomerEdit(false)} onSave={saveCustomer} />
+      )}
+    </div>
+  );
+}
+
+function CreateInvoiceModal({
+  customers,
+  jobs,
+  quotes,
+  onClose,
+  onCreate,
+}: {
+  customers: Customer[];
+  jobs: ReturnType<typeof useJobs>[0];
+  quotes: ReturnType<typeof useQuotes>[0];
+  onClose: () => void;
+  onCreate: (invoice: Invoice) => void;
+}) {
+  const [customerId, setCustomerId] = useState(customers[0]?.id ?? '');
+  const [sourceType, setSourceType] = useState<'job' | 'quote' | 'manual'>('manual');
+  const [sourceId, setSourceId] = useState('');
+  const [description, setDescription] = useState('Workshop Service');
+  const [amount, setAmount] = useState('95');
+  const [dueDate, setDueDate] = useState(new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
+  const issueDate = new Date().toISOString().slice(0, 10);
+
+  const sourceOptions = sourceType === 'job' ? jobs : sourceType === 'quote' ? quotes : [];
+
+  const handleCreate = () => {
+    if (!customerId) return;
+    const parsed = Number.parseFloat(amount);
+    const subtotal = Number.isNaN(parsed) ? 0 : parsed;
+    const vatRate = 20;
+    const total = subtotal * 1.2;
+    const now = new Date().toISOString();
+
+    onCreate({
+      id: `INV-${Date.now()}`,
+      customerId,
+      quoteId: sourceType === 'quote' ? sourceId || undefined : undefined,
+      jobId: sourceType === 'job' ? sourceId || undefined : undefined,
+      status: 'draft',
+      issueDate,
+      dueDate,
+      items: [{ description, quantity: 1, unitPrice: subtotal }],
+      subtotal,
+      vatRate,
+      total,
+      notes: '',
+      createdAt: now,
+      updatedAt: now,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-xl bg-white p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Create Invoice</h2>
+          <button onClick={onClose} className="rounded-md px-2 py-1 text-gray-500 hover:bg-gray-100">
+            Close
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Customer</label>
+            <select value={customerId} onChange={(event) => setCustomerId(event.target.value)} className="w-full rounded-lg border px-3 py-2">
+              <option value="">Select customer...</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {fullName(customer)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Source</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['manual', 'job', 'quote'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setSourceType(type);
+                    setSourceId('');
+                  }}
+                  className={`rounded-lg px-3 py-2 text-xs font-medium ${
+                    sourceType === type ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {type.toUpperCase()}
                 </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                  <select className="w-full px-4 py-2 border rounded-lg">
-                    <option>Select customer...</option>
-                    {invoices.map((inv) => (
-                      <option key={inv.id} value={inv.customer}>{inv.customer}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Job/Service</label>
-                  <select className="w-full px-4 py-2 border rounded-lg">
-                    <option>Select job...</option>
-                    {invoices.map((inv) => (
-                      <option key={inv.id} value={inv.job}>{inv.job}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount (£)</label>
-                  <input type="number" className="w-full px-4 py-2 border rounded-lg" placeholder="0.00" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                  <input type="date" className="w-full px-4 py-2 border rounded-lg" />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                    Create Invoice
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
-        )}
+
+          {sourceType !== 'manual' && (
+            <select value={sourceId} onChange={(event) => setSourceId(event.target.value)} className="w-full rounded-lg border px-3 py-2">
+              <option value="">Select {sourceType}...</option>
+              {sourceOptions.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {source.id}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <input
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            className="w-full rounded-lg border px-3 py-2"
+            placeholder="Description"
+          />
+          <input
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            type="number"
+            min="0"
+            step="0.01"
+            className="w-full rounded-lg border px-3 py-2"
+            placeholder="Amount"
+          />
+          <input value={dueDate} onChange={(event) => setDueDate(event.target.value)} type="date" className="w-full rounded-lg border px-3 py-2" />
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <button onClick={onClose} className="flex-1 rounded-lg border px-4 py-2 hover:bg-gray-50">
+            Cancel
+          </button>
+          <button onClick={handleCreate} className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700">
+            Create Draft
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+
+function EditCustomerModal({
+  customer,
+  onClose,
+  onSave,
+}: {
+  customer: Customer;
+  onClose: () => void;
+  onSave: (customer: Customer) => void;
+}) {
+  const [form, setForm] = useState(customer);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-xl rounded-xl bg-white p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Edit Customer</h2>
+          <button onClick={onClose} className="rounded-md px-2 py-1 text-gray-500 hover:bg-gray-100">
+            Close
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            className="rounded-lg border px-3 py-2"
+            value={form.firstName}
+            onChange={(event) => setForm({ ...form, firstName: event.target.value })}
+            placeholder="First name"
+          />
+          <input
+            className="rounded-lg border px-3 py-2"
+            value={form.lastName}
+            onChange={(event) => setForm({ ...form, lastName: event.target.value })}
+            placeholder="Last name"
+          />
+          <input
+            className="rounded-lg border px-3 py-2"
+            value={form.phone}
+            onChange={(event) => setForm({ ...form, phone: event.target.value })}
+            placeholder="Phone"
+          />
+          <input
+            className="rounded-lg border px-3 py-2"
+            value={form.email}
+            onChange={(event) => setForm({ ...form, email: event.target.value })}
+            placeholder="Email"
+          />
+          <input
+            className="col-span-2 rounded-lg border px-3 py-2"
+            value={form.addressLine1}
+            onChange={(event) => setForm({ ...form, addressLine1: event.target.value })}
+            placeholder="Address line 1"
+          />
+          <input
+            className="rounded-lg border px-3 py-2"
+            value={form.city}
+            onChange={(event) => setForm({ ...form, city: event.target.value })}
+            placeholder="City"
+          />
+          <input
+            className="rounded-lg border px-3 py-2"
+            value={form.postcode}
+            onChange={(event) => setForm({ ...form, postcode: event.target.value })}
+            placeholder="Postcode"
+          />
+        </div>
+
+        <div className="mt-5 flex gap-3">
+          <button onClick={onClose} className="flex-1 rounded-lg border px-4 py-2 hover:bg-gray-50">
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave(form)}
+            className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+          >
+            Save Customer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

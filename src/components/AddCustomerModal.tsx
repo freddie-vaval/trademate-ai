@@ -1,42 +1,58 @@
 'use client';
 
 import { useState } from 'react';
+import { Customer, CustomerStatus } from '@/lib/types';
 
 interface AddCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (customer: any) => void;
+  onAdd: (customer: Customer) => void;
 }
 
 export default function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomerModalProps) {
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     phone: '',
+    altPhone: '',
     email: '',
-    address: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    postcode: '',
     notes: '',
-    status: 'active',
+    status: 'active' as CustomerStatus,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     onAdd({
-      id: Date.now(),
-      name: formData.name,
+      id: `cus_${Date.now()}`,
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
       phone: formData.phone,
+      altPhone: formData.altPhone || undefined,
       email: formData.email,
-      address: formData.address,
+      addressLine1: formData.addressLine1,
+      addressLine2: formData.addressLine2 || undefined,
+      city: formData.city,
+      postcode: formData.postcode,
       notes: formData.notes,
       status: formData.status,
-      jobs: 0,
-      spent: '£0',
-      lastJob: 'Never',
+      createdAt: new Date().toISOString(),
     });
+
     setFormData({
-      name: '',
+      firstName: '',
+      lastName: '',
       phone: '',
+      altPhone: '',
       email: '',
-      address: '',
+      addressLine1: '',
+      addressLine2: '',
+      city: '',
+      postcode: '',
       notes: '',
       status: 'active',
     });
@@ -58,22 +74,36 @@ export default function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomer
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="John Smith"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="John"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Smith"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mobile *</label>
             <input
-              type="tel"
+              type="text"
+              required
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="07700 900000"
               value={formData.phone}
@@ -81,26 +111,76 @@ export default function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomer
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Alt Phone</label>
+              <input
+                type="tel"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Optional"
+                value={formData.altPhone}
+                onChange={(e) => setFormData({ ...formData, altPhone: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <input
+                type="email"
+                required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="john@example.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1 *</label>
             <input
-              type="email"
+              type="text"
+              required
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="john@example.com"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="123 Main Street"
+              value={formData.addressLine1}
+              onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-            <textarea
-              rows={2}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
+            <input
+              type="text"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="123 Main Street, City, Postcode"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              placeholder="Flat, building, etc."
+              value={formData.addressLine2}
+              onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="London"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Postcode *</label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="SW1A 1AA"
+                value={formData.postcode}
+                onChange={(e) => setFormData({ ...formData, postcode: e.target.value.toUpperCase() })}
+              />
+            </div>
           </div>
 
           <div>
@@ -108,7 +188,7 @@ export default function AddCustomerModal({ isOpen, onClose, onAdd }: AddCustomer
             <select
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as CustomerStatus })}
             >
               <option value="active">Active</option>
               <option value="vip">VIP</option>

@@ -1,59 +1,66 @@
 'use client';
 
 import { useState } from 'react';
+import { Customer, Job } from '@/lib/types';
+import { serviceTypes } from '@/lib/seed-data';
+import { fullName } from '@/lib/data-store';
 
 interface AddJobModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (job: any) => void;
-  customers: { id: number; name: string }[];
+  onAdd: (job: Job) => void;
+  customers: Customer[];
 }
 
 export default function AddJobModal({ isOpen, onClose, onAdd, customers }: AddJobModalProps) {
   const [formData, setFormData] = useState({
     customerId: '',
-    service: 'Boiler Service',
+    serviceType: serviceTypes[0],
     description: '',
-    price: '',
+    price: '95',
     date: '',
-    time: '',
+    time: '10:00',
     notes: '',
   });
 
-  const services = [
-    'Boiler Service',
-    'Boiler Repair',
-    'Plumbing Repair',
-    'Gas Safety Check',
-    'New Radiator',
-    'Central Heating',
-    'Bathroom Installation',
-    'Electrical Inspection',
-  ];
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const customer = customers.find(c => c.id === parseInt(formData.customerId));
+
+    if (!formData.customerId) return;
+
+    const price = Number.parseFloat(formData.price);
+    const safePrice = Number.isNaN(price) ? 0 : price;
+
     onAdd({
-      id: Date.now(),
-      customer: customer?.name || 'New Customer',
-      customerId: parseInt(formData.customerId),
-      phone: '07700 900000',
-      service: formData.service,
-      price: formData.price || '£0',
-      status: 'booked',
-      date: formData.date,
-      time: formData.time,
+      id: `job_${Date.now()}`,
+      customerId: formData.customerId,
+      serviceType: formData.serviceType,
       description: formData.description,
+      price: safePrice,
+      status: 'booked-in',
+      bookedDate: formData.date,
+      bookedTime: formData.time,
       notes: formData.notes,
+      photos: [],
+      timeline: [
+        {
+          id: `timeline_${Date.now()}`,
+          status: 'booked-in',
+          label: 'Job booked in',
+          at: new Date().toISOString(),
+          note: formData.notes || undefined,
+        },
+      ],
+      createdAt: new Date().toISOString(),
     });
+
     setFormData({
       customerId: '',
-      service: 'Boiler Service',
+      serviceType: serviceTypes[0],
       description: '',
-      price: '',
+      price: '95',
       date: '',
-      time: '',
+      time: '10:00',
       notes: '',
     });
     onClose();
@@ -84,7 +91,7 @@ export default function AddJobModal({ isOpen, onClose, onAdd, customers }: AddJo
             >
               <option value="">Select customer...</option>
               {customers.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{fullName(c)}</option>
               ))}
             </select>
           </div>
@@ -93,10 +100,10 @@ export default function AddJobModal({ isOpen, onClose, onAdd, customers }: AddJo
             <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
             <select
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              value={formData.service}
-              onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+              value={formData.serviceType}
+              onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
             >
-              {services.map((s) => (
+              {serviceTypes.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
@@ -117,9 +124,11 @@ export default function AddJobModal({ isOpen, onClose, onAdd, customers }: AddJo
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Price (£)</label>
               <input
-                type="text"
+                type="number"
+                min="0"
+                step="0.01"
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="120"
+                placeholder="95"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               />
