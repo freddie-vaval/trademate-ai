@@ -239,15 +239,15 @@ export default function OpportunitiesPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '1rem' }}>
-                  <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}}>Price</div>
+                  <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Price</div>
                   <div style={{ fontSize: '24px', fontWeight: 700, color: '#ff6b35' }}>£{selected.price}/mo</div>
                 </div>
                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '1rem' }}>
-                  <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}}>Target Users</div>
+                  <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Target Users</div>
                   <div style={{ fontSize: '24px', fontWeight: 700, color: 'white' }}>{selected.users}+</div>
                 </div>
                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '1rem' }}>
-                  <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}}>Revenue Target</div>
+                  <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Revenue Target</div>
                   <div style={{ fontSize: '24px', fontWeight: 700, color: '#39FF14' }}>{selected.revenue}</div>
                 </div>
               </div>
