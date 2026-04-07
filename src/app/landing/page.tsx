@@ -124,7 +124,10 @@ export default function LandingPage() {
       <header>
         <div className="container">
           <div className="logo">TradeMate<span>AI</span></div>
-          <Link href="/app" className="cta-button">Go to Dashboard</Link>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <Link href="/opportunities" style={{ color: '#1a1a1a', textDecoration: 'none', fontWeight: 600, fontSize: '14px' }}>🦄 Opportunities</Link>
+            <Link href="/app" className="cta-button">Go to Dashboard</Link>
+          </div>
         </div>
       </header>
 
