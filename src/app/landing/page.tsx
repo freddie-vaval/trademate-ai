@@ -137,7 +137,7 @@ export default function LandingPage() {
             <h1><span className="line1">Your admin sorted.</span> Every call answered, every quote sent, every invoice chased.</h1>
             <p>You didn't start a business to do spreadsheets at 11pm. But here you are. 8 hours a week of admin is taking you away from the actual work — and burning you out. This fixes it.</p>
             <div className="hero-buttons">
-              <a href="#signup" className="btn-primary">Get Early Access</a>
+              <Link href="/onboarding" className="btn-primary">Start Free Trial — 14 Days</Link>
             </div>
           </div>
           <div className="hero-image">

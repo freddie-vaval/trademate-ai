@@ -1,305 +1,400 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import Link from 'next/link';
 
-const UNICORNS = [
-  {
-    rank: 1,
-    name: 'TradieHQ',
-    category: 'SaaS',
-    emoji: '🔥🔥🔥',
-    label: 'UNSTOPPABLE',
-    market: '£800M',
-    users: '200',
-    price: 49,
-    revenue: '£9.8k/mo',
-    verdict: 'Freddie literally runs a bike workshop. He IS the target market. Built-in case study.',
-    path: 'Job management for tradies. £49/mo × 200 users. Cheaper than Jobber (£599/mo).',
-    color: 'border-orange-500',
-    bg: 'bg-orange-500/10',
-  },
-  {
-    rank: 2,
-    name: 'NoShow',
-    category: 'SaaS',
-    emoji: '🔥🔥🔥',
-    label: 'UNSTOPPABLE',
-    market: '£800M lost',
-    users: '200',
-    price: 19,
-    revenue: '£3.8k/mo + 2% tx',
-    verdict: 'Every service business misses calls. A missed call = £50-200 lost. £0 CAC from word of mouth.',
-    path: 'Charge £19/mo + 2% of deposits forfeited. Mechanics, salons, therapists — universal problem.',
-    color: 'border-red-500',
-    bg: 'bg-red-500/10',
-  },
-  {
-    rank: 3,
-    name: 'AIReceptionist',
-    category: 'SaaS',
-    emoji: '⚡⚡',
-    label: 'STRONG',
-    market: '£3.2B',
-    users: '200',
-    price: 79,
-    revenue: '£15.8k/mo',
-    verdict: 'Freddie is already building this for BikeClinique. Package it as a product. Voice clone = unfair advantage.',
-    path: 'AI phone receptionist. £79/mo × 200 businesses. The voice clone is the moat no competitor has.',
-    color: 'border-yellow-500',
-    bg: 'bg-yellow-500/10',
-  },
-  {
-    rank: 4,
-    name: 'NoMoreSpreadsheets',
-    category: 'SaaS',
-    emoji: '🔥🔥🔥',
-    label: 'UNSTOPPABLE',
-    market: '£2.4B',
-    users: '500',
-    price: 19,
-    revenue: '£9.5k/mo',
-    verdict: 'CRM for people who hate CRMs. Simple, beautiful, mobile-first.',
-    path: 'CRM for people who hate CRMs. £19/mo × 500 users. Dead simple positioning.',
-    color: 'border-purple-500',
-    bg: 'bg-purple-500/10',
-  },
-  {
-    rank: 5,
-    name: 'Receipt2',
-    category: 'SaaS',
-    emoji: '🔥🔥🔥',
-    label: 'UNSTOPPABLE',
-    market: '£1.6B',
-    users: '1000',
-    price: 17,
-    revenue: '£17k/mo',
-    verdict: 'Accounting for non-accountants. Every freelancer and small trader needs this.',
-    path: 'Receipt scanning + expense tracking for non-accountants. £17/mo × 1,000 users.',
-    color: 'border-green-500',
-    bg: 'bg-green-500/10',
-  },
-  {
-    rank: 6,
-    name: 'BetterThanGym',
-    category: 'Subscription',
-    emoji: '🔥🔥🔥',
-    label: 'UNSTOPPABLE',
-    market: '£5.2B',
-    users: '1000',
-    price: 12,
-    revenue: '£12k/mo',
-    verdict: 'Netflix for home fitness — curated for women 30+. Huge retention, recurring revenue.',
-    path: 'Netflix for home fitness, women 30+. £12/mo × 1,000 subscribers.',
-    color: 'border-pink-500',
-    bg: 'bg-pink-500/10',
-  },
-  {
-    rank: 7,
-    name: 'WaitlistIQ',
-    category: 'SaaS',
-    emoji: '⚡⚡',
-    label: 'STRONG',
-    market: 'Every launch',
-    users: '500',
-    price: 29,
-    revenue: '£14.5k/mo',
-    verdict: 'Every product launch needs waitlist management. 500 launches/mo = predictable revenue.',
-    path: 'Turn waitlists into preorders. 500 launches = £14.5k/mo. Recurring event launches.',
-    color: 'border-blue-500',
-    bg: 'bg-blue-500/10',
-  },
-  {
-    rank: 8,
-    name: 'MicroSwap',
-    category: 'Marketplace',
-    emoji: '💡',
-    label: 'INTERESTING',
-    market: '£4.8B',
-    users: '500',
-    price: 0,
-    revenue: '£2.5k/mo',
-    verdict: 'Freelance marketplace with escrow. Smaller niche, but 10% commission adds up.',
-    path: 'Freelance marketplace with escrow. 10% commission on transactions.',
-    color: 'border-cyan-500',
-    bg: 'bg-cyan-500/10',
-  },
-  {
-    rank: 9,
-    name: 'BlindDate',
-    category: 'App',
-    emoji: '💡',
-    label: 'INTERESTING',
-    market: '£250M',
-    users: '200',
-    price: 49,
-    revenue: '£9.8k/mo',
-    verdict: 'Matchmaking for over-35s. Niche but willing to pay premium. £49/mo × 200 subscribers.',
-    path: 'Matchmaking for over-35s. £49/mo × 200 subscribers. Premium positioning.',
-    color: 'border-rose-500',
-    bg: 'bg-rose-500/10',
-  },
-  {
-    rank: 10,
-    name: 'RentMyKit',
-    category: 'Marketplace',
-    emoji: '💡',
-    label: 'INTERESTING',
-    market: '£2.1B',
-    users: '300',
-    price: 0,
-    revenue: '£1.5k/mo',
-    verdict: 'Airbnb for outdoor gear. 15% commission. Tradie angle — contractors renting equipment.',
-    path: 'Airbnb for outdoor gear. 15% commission. Contractors renting tools and equipment.',
-    color: 'border-teal-500',
-    bg: 'bg-teal-500/10',
-  },
-];
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ekzuplrsptshriwazeur.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrenVwbHJzcHRzaHJpd2F6ZXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjI4NTUsImV4cCI6MjA5MDUzODg1NX0.cAzLzlJUQSaYV8NtpEoZQoov39trGcELjt0G9GGNHzM'
+);
+
+type Opportunity = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  business: string;
+  trade: string;
+  source: string;
+  status: 'new' | 'contacted' | 'quoted' | 'won' | 'lost';
+  notes: string;
+  created_at: string;
+};
+
+const STATUS_LABELS: Record<Opportunity['status'], string> = {
+  new: 'New',
+  contacted: 'Contacted',
+  quoted: 'Quoted',
+  won: 'Won',
+  lost: 'Lost',
+};
+
+const STATUS_COLORS: Record<Opportunity['status'], string> = {
+  new: 'background: #dbeafe; color: #1d4ed8;',
+  contacted: 'background: #fef3c7; color: #92400e;',
+  quoted: 'background: #ede9fe; color: #6d28d9;',
+  won: 'background: #d1fae5; color: #065f46;',
+  lost: 'background: #f3f4f6; color: #6b7280;',
+};
+
+const TRADE_LABELS: Record<string, string> = {
+  plumber: 'Plumber',
+  electrician: 'Electrician',
+  builder: 'Builder',
+  hvac: 'HVAC / Heating',
+  roofer: 'Roofer',
+  carpenter: 'Carpenter',
+  painter: 'Painter',
+  landscaper: 'Landscaper',
+  other: 'Other',
+};
 
 export default function OpportunitiesPage() {
-  const [selected, setSelected] = useState<typeof UNICORNS[0] | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<Opportunity['status'] | 'all'>('all');
+  const [selected, setSelected] = useState<Opportunity | null>(null);
+  const [note, setNote] = useState('');
 
-  const displayed = showAll ? UNICORNS : UNICORNS.slice(0, 3);
+  useEffect(() => {
+    loadOpportunities();
+  }, []);
+
+  async function loadOpportunities() {
+    setLoading(true);
+    try {
+      // Try to load from waitlist table (rename to opportunities conceptually)
+      const { data, error } = await supabase
+        .from('waitlist')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      // Map waitlist entries to opportunities format
+      const mapped: Opportunity[] = (data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name || '',
+        email: row.email || '',
+        phone: row.phone || '',
+        business: row.business || '',
+        trade: row.trade || '',
+        source: row.source || 'website',
+        status: (row.status as Opportunity['status']) || 'new',
+        notes: row.notes || '',
+        created_at: row.created_at || '',
+      }));
+
+      setOpportunities(mapped);
+    } catch (err) {
+      console.error('Error loading opportunities:', err);
+      // Fall back to seed data
+      setOpportunities(SEED_OPPORTUNITIES);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function updateStatus(id: string, status: Opportunity['status']) {
+    try {
+      const { error } = await supabase
+        .from('waitlist')
+        .update({ status })
+        .eq('id', id);
+      if (!error) {
+        setOpportunities(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+        if (selected?.id === id) setSelected({ ...selected, status });
+      }
+    } catch (err) {
+      console.error('Error updating status:', err);
+    }
+  }
+
+  async function addNote(id: string) {
+    if (!note.trim()) return;
+    try {
+      const current = opportunities.find(o => o.id === id);
+      const newNotes = `${current?.notes || ''}\n[${new Date().toLocaleDateString('en-GB')}] ${note.trim()}`;
+      const { error } = await supabase
+        .from('waitlist')
+        .update({ notes: newNotes })
+        .eq('id', id);
+      if (!error) {
+        setOpportunities(prev => prev.map(o => o.id === id ? { ...o, notes: newNotes } : o));
+        if (selected?.id === id) setSelected({ ...selected, notes: newNotes });
+        setNote('');
+      }
+    } catch (err) {
+      console.error('Error adding note:', err);
+    }
+  }
+
+  const filtered = filter === 'all' ? opportunities : opportunities.filter(o => o.status === filter);
+  const counts = {
+    all: opportunities.length,
+    new: opportunities.filter(o => o.status === 'new').length,
+    contacted: opportunities.filter(o => o.status === 'contacted').length,
+    quoted: opportunities.filter(o => o.status === 'quoted').length,
+    won: opportunities.filter(o => o.status === 'won').length,
+    lost: opportunities.filter(o => o.status === 'lost').length,
+  };
 
   return (
-    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif' }}>
+    <div style={{ padding: '24px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: '#f9fafb', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)', minHeight: '100vh', padding: '0' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '3rem 2rem' }}>
-          
-          {/* Back nav */}
-          <div style={{ marginBottom: '2rem' }}>
-            <a href="/landing" style={{ color: '#666', textDecoration: 'none', fontSize: '14px' }}>
-              ← Back to Trademate
-            </a>
-          </div>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#1a1a1a' }}>Leads & Opportunities</h1>
+          <Link href="/app" style={{ fontSize: '14px', color: '#6b7280', textDecoration: 'none' }}>← Back to Dashboard</Link>
+        </div>
+        <p style={{ fontSize: '14px', color: '#6b7280' }}>
+          {opportunities.length === 0 ? 'No leads yet — share your link to start generating leads' : `${opportunities.length} total leads`}
+        </p>
+      </div>
 
-          {/* Hero */}
-          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <div style={{ display: 'inline-block', background: 'rgba(255,107,53,0.15)', border: '1px solid rgba(255,107,53,0.3)', borderRadius: '100px', padding: '8px 20px', marginBottom: '1.5rem' }}>
-              <span style={{ color: '#ff6b35', fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                🦄 Business Opportunities — Scanned by AI
-              </span>
+      {/* Status filters */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        {(['all', 'new', 'contacted', 'quoted', 'won', 'lost'] as const).map(s => (
+          <button
+            key={s}
+            onClick={() => setFilter(s)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '20px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              background: filter === s ? '#ff6b35' : '#fff',
+              color: filter === s ? '#fff' : '#6b7280',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            }}
+          >
+            {s === 'all' ? 'All' : STATUS_LABELS[s]} {counts[s] > 0 && `(${counts[s]})`}
+          </button>
+        ))}
+      </div>
+
+      {/* Kanban-style columns on desktop, list on mobile */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+        {(filter === 'all' ? (['new', 'contacted', 'quoted', 'won', 'lost'] as const) : [filter]).map(status => {
+          const items = opportunities.filter(o => o.status === status);
+          if (filter !== 'all' && items.length === 0) return null;
+          return (
+            <div key={status}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: status === 'new' ? '#3b82f6' : status === 'won' ? '#10b981' : status === 'lost' ? '#9ca3af' : '#f59e0b' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {STATUS_LABELS[status]}
+                  </span>
+                </div>
+                <span style={{ fontSize: '12px', background: '#f3f4f6', color: '#6b7280', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+                  {items.length}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {items.length === 0 && (
+                  <div style={{ background: '#fff', border: '2px dashed #e5e7eb', borderRadius: '12px', padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
+                    No leads
+                  </div>
+                )}
+                {items.map(o => (
+                  <div
+                    key={o.id}
+                    onClick={() => setSelected(o)}
+                    style={{
+                      background: '#fff',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                      cursor: 'pointer',
+                      border: selected?.id === o.id ? '2px solid #ff6b35' : '2px solid transparent',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <div>
+                        <p style={{ fontWeight: 700, color: '#1a1a1a', fontSize: '15px', margin: 0 }}>{o.name || 'Unnamed'}</p>
+                        {o.business && <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0' }}>{o.business}</p>}
+                      </div>
+                      {o.trade && (
+                        <span style={{ fontSize: '11px', background: '#f3f4f6', color: '#374151', padding: '2px 8px', borderRadius: '10px', fontWeight: 500 }}>
+                          {TRADE_LABELS[o.trade] || o.trade}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                      {o.phone && <div>📞 {o.phone}</div>}
+                      {o.email && <div>✉️ {o.email}</div>}
+                    </div>
+                    <div style={{ marginTop: '8px', fontSize: '11px', color: '#9ca3af' }}>
+                      {o.created_at ? new Date(o.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                      {o.source !== 'website' && ` · ${o.source}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h1 style={{ fontSize: 'clamp(36px, 6vw, 64px)', fontWeight: 800, color: 'white', marginBottom: '1rem', lineHeight: 1.1 }}>
-              10 Unicorns
-            </h1>
-            <p style={{ fontSize: '18px', color: '#888', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
-              Businesses that can actually reach £10k–£100k/month. Real software, platforms, and marketplaces. 
-              Found by scanning thousands of frustrated communities.
-            </p>
+          );
+        })}
+      </div>
+
+      {/* Lead detail sidebar */}
+      {selected && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            width: '400px',
+            height: '100vh',
+            background: '#fff',
+            boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
+            padding: '24px',
+            overflowY: 'auto',
+            zIndex: 100,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1a1a1a' }}>{selected.name || 'Lead Details'}</h2>
+            <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af' }}>×</button>
           </div>
 
-          {/* Top 3 highlight */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-            {UNICORNS.slice(0, 3).map(u => (
-              <button
-                key={u.rank}
-                onClick={() => setSelected(selected?.rank === u.rank ? null : u)}
-                style={{
-                  background: 'rgba(15,15,15,0.8)',
-                  border: `2px solid ${selected?.rank === u.rank ? '#ff6b35' : 'rgba(255,255,255,0.1)'}`,
-                  borderRadius: '16px',
-                  padding: '1.5rem',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  width: '100%',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div>
-                    <span style={{ fontSize: '12px', color: '#666', marginRight: '8px' }}>#{u.rank}</span>
-                    <span style={{ fontSize: '24px', marginRight: '8px' }}>{u.emoji}</span>
-                    <span style={{ background: 'rgba(255,107,53,0.2)', color: '#ff6b35', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px' }}>
-                      {u.label}
-                    </span>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '28px', fontWeight: 800, color: '#ff6b35' }}>{u.revenue}</div>
-                    <div style={{ fontSize: '11px', color: '#555' }}>potential/mo</div>
-                  </div>
-                </div>
-                <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'white', marginBottom: '4px' }}>{u.name}</h3>
-                <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>{u.category} · {u.market} market</p>
-                <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.5 }}>{u.verdict}</p>
-              </button>
-            ))}
-          </div>
-
-          {/* Selected detail */}
-          {selected && (
-            <div style={{ background: 'rgba(255,107,53,0.05)', border: '2px solid rgba(255,107,53,0.3)', borderRadius: '20px', padding: '2rem', marginBottom: '3rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '40px' }}>{selected.emoji}</span>
-                <div>
-                  <h2 style={{ fontSize: '32px', fontWeight: 800, color: 'white', margin: 0 }}>{selected.name}</h2>
-                  <span style={{ color: '#666', fontSize: '14px' }}>{selected.category} · {selected.market} market</span>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '1rem' }}>
-                  <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Price</div>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: '#ff6b35' }}>£{selected.price}/mo</div>
-                </div>
-                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '1rem' }}>
-                  <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Target Users</div>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: 'white' }}>{selected.users}+</div>
-                </div>
-                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '1rem' }}>
-                  <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Revenue Target</div>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: '#39FF14' }}>{selected.revenue}</div>
-                </div>
-              </div>
-              <p style={{ fontSize: '16px', color: '#ccc', lineHeight: 1.7, marginBottom: '1rem' }}>{selected.path}</p>
-              <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, fontStyle: 'italic' }}>"{selected.verdict}"</p>
+          {selected.business && (
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Business</p>
+              <p style={{ fontSize: '15px', color: '#1a1a1a', fontWeight: 600 }}>{selected.business}</p>
             </div>
           )}
 
-          {/* Full list */}
-          <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'white' }}>All Opportunities</h2>
-            <button
-              onClick={() => setShowAll(!showAll)}
-              style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#888', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}
-            >
-              {showAll ? 'Show less' : `Show all 10 →`}
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {UNICORNS.map(u => (
-              <div key={u.rank} style={{ background: 'rgba(15,15,15,0.6)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#333', width: '24px', flexShrink: 0 }}>#{u.rank}</div>
-                <div style={{ fontSize: '20px', flexShrink: 0 }}>{u.emoji}</div>
-                <div style={{ flex: 1 }}>
-                  <span style={{ fontWeight: 600, color: 'white', fontSize: '15px' }}>{u.name}</span>
-                  <span style={{ color: '#555', fontSize: '12px', marginLeft: '8px' }}>{u.category}</span>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontWeight: 600, color: '#ff6b35', fontSize: '14px' }}>{u.revenue}</div>
-                  <div style={{ color: '#444', fontSize: '11px' }}>{u.market}</div>
-                </div>
-                <div style={{ flexShrink: 0 }}>
-                  <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', color: '#666' }}>
-                    {u.label}
-                  </span>
-                </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+            {selected.phone && (
+              <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '10px' }}>
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>PHONE</p>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>{selected.phone}</p>
               </div>
-            ))}
+            )}
+            {selected.email && (
+              <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '10px' }}>
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>EMAIL</p>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a', wordBreak: 'break-all' }}>{selected.email}</p>
+              </div>
+            )}
           </div>
 
-          {/* Footer */}
-          <div style={{ textAlign: 'center', marginTop: '4rem', padding: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-            <p style={{ color: '#444', fontSize: '13px' }}>
-              Scanned by Opportunity Engine · Built by AI agents · Updated continuously
-            </p>
-            <a href="/landing" style={{ display: 'inline-block', marginTop: '1rem', background: '#ff6b35', color: 'white', padding: '12px 28px', borderRadius: '10px', fontWeight: 600, textDecoration: 'none', fontSize: '15px' }}>
-              Join the Trademate Waitlist →
-            </a>
+          {selected.trade && (
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Trade</p>
+              <p style={{ fontSize: '15px', color: '#1a1a1a' }}>{TRADE_LABELS[selected.trade] || selected.trade}</p>
+            </div>
+          )}
+
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Status</p>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {(['new', 'contacted', 'quoted', 'won', 'lost'] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => updateStatus(selected.id, s)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    background: selected.status === s ? '#ff6b35' : '#f3f4f6',
+                    color: selected.status === s ? '#fff' : '#6b7280',
+                  }}
+                >
+                  {STATUS_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick actions */}
+          {selected.email && (
+            <div style={{ marginBottom: '20px' }}>
+              <a
+                href={`mailto:${selected.email}`}
+                style={{ display: 'block', background: '#ff6b35', color: '#fff', textAlign: 'center', padding: '12px', borderRadius: '10px', textDecoration: 'none', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}
+              >
+                ✉️ Send Email
+              </a>
+              {selected.phone && (
+                <a
+                  href={`tel:${selected.phone}`}
+                  style={{ display: 'block', background: '#1a1a1a', color: '#fff', textAlign: 'center', padding: '12px', borderRadius: '10px', textDecoration: 'none', fontWeight: 700, fontSize: '14px' }}
+                >
+                  📞 Call {selected.phone}
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Notes */}
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Notes</p>
+            {selected.notes && (
+              <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '12px', marginBottom: '12px', fontSize: '13px', color: '#374151', whiteSpace: 'pre-wrap' }}>
+                {selected.notes}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addNote(selected.id)}
+                placeholder="Add a note and press Enter..."
+                style={{ flex: 1, padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
+
+const SEED_OPPORTUNITIES: Opportunity[] = [
+  {
+    id: 'seed-1',
+    name: 'James Wilson',
+    email: 'james@wplumbing.co.uk',
+    phone: '07900 123456',
+    business: 'Wilson Plumbing & Heating',
+    trade: 'plumber',
+    source: 'website',
+    status: 'new',
+    notes: '',
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'seed-2',
+    name: 'Sarah Chen',
+    email: 'sarah@brightelec.co.uk',
+    phone: '07800 654321',
+    business: 'Bright Electrical',
+    trade: 'electrician',
+    source: 'Google Ads',
+    status: 'contacted',
+    notes: '[Apr 6] Called — voicemail. Will try again tomorrow.',
+    created_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'seed-3',
+    name: 'Mike Thompson',
+    email: 'mike@tomsbuild.co.uk',
+    phone: '07500 111222',
+    business: 'Thompson Builders',
+    trade: 'builder',
+    source: 'Facebook',
+    status: 'quoted',
+    notes: '[Apr 5] Sent Pro plan quote. Waiting for response.',
+    created_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
