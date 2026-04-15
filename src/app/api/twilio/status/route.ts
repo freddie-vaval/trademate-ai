@@ -84,7 +84,7 @@ export async function POST(request: Request) {
           title: 'Call failed',
           message: `Inbound call failed for ${callSid}`,
           priority: 'high',
-        }}]);
+        }]);
         break;
       }
 
