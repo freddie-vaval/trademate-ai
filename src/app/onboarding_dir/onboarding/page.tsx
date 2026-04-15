@@ -271,7 +271,7 @@ function StepTools({ data, update }: { data: FormData; update: (d: Partial<FormD
 // ─── Step 5: Main Challenge ────────────────────────────────────────────────────
 
 const CHALLENGES = [
-  { value: 'missed_calls', label: 'Missed calls', sub: 'Losing jobs because I am on another job and can't answer' },
+  { value: 'missed_calls', label: 'Missed calls', sub: 'Losing jobs because I am on another job and cannot answer' },
   { value: 'admin', label: 'Too much admin', sub: 'Chasing quotes, following up, paperwork eating my time' },
   { value: 'late_payments', label: 'Late payments', sub: 'Customers not paying on time, cash flow stress' },
   { value: 'all', label: 'All of the above', sub: 'Everything needs sorting — I need the full system' },
