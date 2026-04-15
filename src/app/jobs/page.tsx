@@ -7,34 +7,21 @@ import { jobStatusLabels } from '@/lib/seed-data';
 import { Job, JobStatus } from '@/lib/types';
 
 const jobColumns: JobStatus[] = [
+  'quoted',
   'booked-in',
-  'diagnosis',
-  'awaiting-parts',
   'in-repair',
-  'quality-check',
   'ready-for-collection',
-  'collected',
 ];
 
-function statusClass(status: JobStatus): string {
-  switch (status) {
-    case 'booked-in':
-      return 'bg-blue-100 text-blue-700';
-    case 'diagnosis':
-      return 'bg-indigo-100 text-indigo-700';
-    case 'awaiting-parts':
-      return 'bg-amber-100 text-amber-700';
-    case 'in-repair':
-      return 'bg-purple-100 text-purple-700';
-    case 'quality-check':
-      return 'bg-cyan-100 text-cyan-700';
-    case 'ready-for-collection':
-      return 'bg-emerald-100 text-emerald-700';
-    case 'collected':
-      return 'bg-slate-200 text-slate-700';
-    default:
-      return 'bg-gray-100 text-gray-700';
-  }
+function statusBadge(status: JobStatus, count: number) {
+  let bg = '#f3f4f6';
+  let color = '#6b7280';
+  if (status === 'quoted') { bg = '#dbeafe'; color = '#1d4ed8'; }
+  else if (status === 'booked-in') { bg = '#bfdbfe'; color = '#1e40af'; }
+  else if (status === 'in-repair') { bg = '#e9d5ff'; color = '#6b21a8'; }
+  else if (status === 'ready-for-collection') { bg = '#dcfce7'; color = '#15803d'; }
+
+  return { bg, color };
 }
 
 export default function JobsPage() {
@@ -55,7 +42,6 @@ export default function JobsPage() {
 
   const filteredJobs = useMemo(() => {
     const needle = search.trim().toLowerCase();
-
     return jobs.filter((job) => {
       const customer = customerMap.get(job.customerId);
       const customerName = customer ? fullName(customer).toLowerCase() : '';
@@ -101,150 +87,144 @@ export default function JobsPage() {
   };
 
   if (!ready) {
-    return <div className="min-h-screen bg-gray-50 p-8 text-gray-600">Loading jobs...</div>;
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#6b7280' }}>Loading jobs...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="mx-auto max-w-[92rem] px-4">
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '2rem 1rem' }}>
+      <div style={{ maxWidth: '92rem', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
           <div>
-            <a href="/" className="mb-2 inline-block text-sm text-blue-600 hover:text-blue-800">← Dashboard</a>
-            <h1 className="text-3xl font-bold text-gray-900">Job Board</h1>
-            <p className="text-gray-600">Track every repair from booking to collection</p>
+            <a href='/app' style={{ display: 'inline-block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#2563eb', textDecoration: 'none' }}>← App</a>
+            <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827' }}>Job Board</h1>
+            <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Track every repair from booking to collection</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
+            style={{ backgroundColor: '#2563eb', color: 'white', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '500', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
           >
             + Add Job
           </button>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-3 rounded-xl border bg-white p-4 md:grid-cols-4">
+        {/* Filters row */}
+        <div style={{ marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #e5e7eb' }}>
           <input
-            type="text"
-            placeholder="Search customer, service, description..."
+            type='text'
+            placeholder='Search customer, service...'
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="w-full rounded-lg border px-4 py-2"
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', fontSize: '0.875rem' }}
           />
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as 'all' | JobStatus)}
-            className="rounded-lg border px-4 py-2"
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | JobStatus)}
+            style={{ padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', fontSize: '0.875rem' }}
           >
-            <option value="all">All statuses</option>
+            <option value='all'>All statuses</option>
             {jobColumns.map((status) => (
-              <option key={status} value={status}>
-                {jobStatusLabels[status]}
-              </option>
+              <option key={status} value={status}>{jobStatusLabels[status]}</option>
             ))}
           </select>
-          <div className="rounded-lg bg-slate-50 px-4 py-2 text-sm text-slate-700">
-            Total jobs: <span className="font-semibold">{jobs.length}</span>
+          <div style={{ padding: '0.5rem 0.75rem', borderRadius: '0.5rem', backgroundColor: '#f8fafc', fontSize: '0.875rem', color: '#64748b', display: 'flex', alignItems: 'center' }}>
+            Total: <strong style={{ marginLeft: '0.25rem', color: '#1e293b' }}>{jobs.length}</strong>
           </div>
-          <div className="rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
-            Collected: <span className="font-semibold">{jobs.filter((job) => job.status === 'collected').length}</span>
+          <div style={{ padding: '0.5rem 0.75rem', borderRadius: '0.5rem', backgroundColor: '#f0fdf4', fontSize: '0.875rem', color: '#15803d', display: 'flex', alignItems: 'center' }}>
+            Collected: <strong style={{ marginLeft: '0.25rem' }}>{jobs.filter(j => j.status === 'collected').length}</strong>
           </div>
         </div>
 
-        <div className="mb-8 overflow-x-auto">
-          <div className="grid min-w-[1200px] grid-cols-7 gap-4">
-            {jobColumns.map((status) => {
-              const columnJobs = filteredJobs.filter((job) => job.status === status);
+        {/* Kanban board */}
+        <div style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', minWidth: '700px' }}>
+          {jobColumns.map((status) => {
+            const columnJobs = filteredJobs.filter((job) => job.status === status);
+            const badge = statusBadge(status, columnJobs.length);
 
-              return (
-                <div
-                  key={status}
-                  className="rounded-xl bg-gray-100 p-3"
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    const jobId = event.dataTransfer.getData('jobId');
-                    if (jobId) moveJob(jobId, status);
-                  }}
-                >
-                  <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-gray-700">{jobStatusLabels[status]}</h2>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusClass(status)}`}>
-                      {columnJobs.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {columnJobs.map((job) => {
-                      const customer = customerMap.get(job.customerId);
-                      return (
-                        <button
-                          key={job.id}
-                          draggable
-                          onDragStart={(event) => event.dataTransfer.setData('jobId', job.id)}
-                          onClick={() => setSelectedJobId(job.id)}
-                          className="w-full rounded-lg border bg-white p-3 text-left shadow-sm transition hover:shadow-md"
-                        >
-                          <p className="font-medium text-gray-900">
-                            {customer ? fullName(customer) : 'Unknown Customer'}
-                          </p>
-                          <p className="mt-1 text-sm text-gray-600">{job.serviceType}</p>
-                          <p className="mt-2 text-sm font-semibold text-blue-700">{formatMoney(job.price)}</p>
-                          <p className="mt-1 text-xs text-gray-500">
-                            {job.bookedDate} at {job.bookedTime}
-                          </p>
-                        </button>
-                      );
-                    })}
-                    {columnJobs.length === 0 && (
-                      <p className="rounded-lg border border-dashed border-gray-300 p-3 text-xs text-gray-500">
-                        Drop jobs here
-                      </p>
-                    )}
-                  </div>
+            return (
+              <div
+                key={status}
+                style={{ borderRadius: '0.75rem', backgroundColor: '#f3f4f6', padding: '0.75rem' }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const jobId = e.dataTransfer.getData('jobId');
+                  if (jobId) moveJob(jobId, status);
+                }}
+              >
+                <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h2 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151' }}>{jobStatusLabels[status]}</h2>
+                  <span style={{ borderRadius: '9999px', padding: '0.125rem 0.5rem', fontSize: '0.75rem', fontWeight: '600', backgroundColor: badge.bg, color: badge.color }}>
+                    {columnJobs.length}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {columnJobs.map((job) => {
+                    const customer = customerMap.get(job.customerId);
+                    return (
+                      <button
+                        key={job.id}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData('jobId', job.id)}
+                        onClick={() => setSelectedJobId(job.id)}
+                        style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #e5e7eb', backgroundColor: 'white', padding: '0.75rem', textAlign: 'left', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', cursor: 'grab', fontSize: '0.875rem' }}
+                      >
+                        <p style={{ fontWeight: '500', color: '#111827' }}>
+                          {customer ? fullName(customer) : 'Unknown Customer'}
+                        </p>
+                        <p style={{ marginTop: '0.25rem', color: '#6b7280' }}>{job.serviceType}</p>
+                        <p style={{ marginTop: '0.5rem', fontWeight: '600', color: '#2563eb' }}>{formatMoney(job.price)}</p>
+                        <p style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#9ca3af' }}>
+                          {job.bookedDate} at {job.bookedTime}
+                        </p>
+                      </button>
+                    );
+                  })}
+                  {columnJobs.length === 0 && (
+                    <p style={{ borderRadius: '0.5rem', border: '1px dashed #d1d5db', padding: '0.75rem', fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center' }}>
+                      Drop jobs here
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <div className="overflow-hidden rounded-xl border bg-white">
-          <table className="w-full">
-            <thead className="border-b bg-gray-50">
+        {/* Table view */}
+        <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Customer</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Service</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">When</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Action</th>
+                {['Customer', 'Service', 'When', 'Status', 'Price', 'Action'].map(h => (
+                  <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280' }}>{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody style={{ borderBottom: '1px solid #f3f4f6' }}>
               {filteredJobs.map((job) => {
                 const customer = customerMap.get(job.customerId);
                 return (
-                  <tr key={job.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">
+                  <tr key={job.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: '500', color: '#111827' }}>
                       {customer ? fullName(customer) : 'Unknown Customer'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{job.serviceType}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {job.bookedDate} {job.bookedTime}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusClass(job.status)}`}>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: '#6b7280' }}>{job.serviceType}</td>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', color: '#6b7280' }}>{job.bookedDate} {job.bookedTime}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span style={{ borderRadius: '9999px', padding: '0.25rem 0.75rem', fontSize: '0.75rem', fontWeight: '500', backgroundColor: '#f3f4f6', color: '#6b7280' }}>
                         {jobStatusLabels[job.status]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatMoney(job.price)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-3 text-sm font-medium">
-                        <button onClick={() => setSelectedJobId(job.id)} className="text-blue-600 hover:text-blue-800">
-                          View
-                        </button>
-                        <button onClick={() => promoteJob(job)} className="text-emerald-600 hover:text-emerald-800">
-                          Move +
-                        </button>
-                      </div>
+                    <td style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', fontWeight: '600', color: '#111827' }}>{formatMoney(job.price)}</td>
+                    <td style={{ padding: '0.75rem 1rem', display: 'flex', gap: '1rem' }}>
+                      <button onClick={() => setSelectedJobId(job.id)} style={{ fontSize: '0.875rem', fontWeight: '500', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}>View</button>
+                      <button onClick={() => promoteJob(job)} style={{ fontSize: '0.875rem', fontWeight: '500', color: '#16a34a', background: 'none', border: 'none', cursor: 'pointer' }}>Move →</button>
                     </td>
                   </tr>
                 );
@@ -262,78 +242,47 @@ export default function JobsPage() {
       />
 
       {selectedJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6">
-            <div className="mb-5 flex items-start justify-between">
+        <div style={{ position: 'fixed', inset: '0', zIndex: '50', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: '1rem' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.5rem', maxWidth: '42rem', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Job Details</h2>
-                <p className="text-sm text-gray-500">{selectedJob.id}</p>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827' }}>Job Details</h2>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{selectedJob.id}</p>
               </div>
-              <button
-                onClick={() => setSelectedJobId(null)}
-                className="rounded-md px-2 py-1 text-gray-500 hover:bg-gray-100"
-              >
-                Close
-              </button>
+              <button onClick={() => setSelectedJobId(null)} style={{ borderRadius: '0.375rem', padding: '0.25rem 0.5rem', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">Customer</p>
-                <p className="font-medium text-gray-900">
-                  {selectedJob && customerMap.get(selectedJob.customerId)
-                    ? fullName(customerMap.get(selectedJob.customerId)!)
-                    : 'Unknown'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Service</p>
-                <p className="font-medium text-gray-900">{selectedJob.serviceType}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Booked</p>
-                <p className="font-medium text-gray-900">
-                  {selectedJob.bookedDate} at {selectedJob.bookedTime}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Price</p>
-                <p className="font-medium text-blue-700">{formatMoney(selectedJob.price)}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-sm text-gray-500">Description</p>
-                <p className="font-medium text-gray-900">{selectedJob.description || 'No description'}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-sm text-gray-500">Notes</p>
-                <p className="font-medium text-gray-900">{selectedJob.notes || 'No notes'}</p>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              {[
+                ['Customer', selectedJob && customerMap.get(selectedJob.customerId) ? fullName(customerMap.get(selectedJob.customerId)!) : 'Unknown'],
+                ['Service', selectedJob.serviceType],
+                ['Booked', `${selectedJob.bookedDate} at ${selectedJob.bookedTime}`],
+                ['Price', formatMoney(selectedJob.price)],
+              ].map(([label, value]) => (
+                <div key={label as string}>
+                  <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>{label}</p>
+                  <p style={{ fontWeight: '500', color: '#374151', fontSize: '0.875rem' }}>{value}</p>
+                </div>
+              ))}
+              {['Description', 'Notes'].map(field => (
+                <div key={field} style={{ gridColumn: '1 / -1' }}>
+                  <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>{field}</p>
+                  <p style={{ fontWeight: '500', color: '#374151', fontSize: '0.875rem' }}>{selectedJob[field.toLowerCase() as 'description' | 'notes'] || 'None'}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="mt-6 border-t pt-5">
-              <h3 className="mb-3 font-semibold text-gray-900">Timeline</h3>
-              <div className="space-y-2">
+            <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem' }}>
+              <h3 style={{ fontWeight: '600', color: '#111827', marginBottom: '0.75rem', fontSize: '0.875rem' }}>Timeline</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {selectedJob.timeline.map((event) => (
-                  <div key={event.id} className="rounded-lg bg-gray-50 p-3">
-                    <p className="text-sm font-semibold text-gray-800">{event.label}</p>
-                    <p className="text-xs text-gray-500">{new Date(event.at).toLocaleString('en-GB')}</p>
-                    {event.note && <p className="mt-1 text-sm text-gray-700">{event.note}</p>}
+                  <div key={event.id} style={{ borderRadius: '0.5rem', backgroundColor: '#f9fafb', padding: '0.75rem' }}>
+                    <p style={{ fontWeight: '500', color: '#374151', fontSize: '0.875rem' }}>{event.label}</p>
+                    <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{new Date(event.at).toLocaleString('en-GB')}</p>
+                    {event.note && <p style={{ marginTop: '0.25rem', fontSize: '0.875rem', color: '#6b7280' }}>{event.note}</p>}
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="mt-6 border-t pt-5">
-              <h3 className="mb-2 font-semibold text-gray-900">Photos</h3>
-              {selectedJob.photos.length === 0 ? (
-                <p className="rounded-lg bg-gray-50 p-3 text-sm text-gray-500">No photos added yet.</p>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {selectedJob.photos.map((photo, index) => (
-                    <img key={`${photo}-${index}`} src={photo} alt={`Job photo ${index + 1}`} className="rounded-lg" />
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -341,4 +290,3 @@ export default function JobsPage() {
     </div>
   );
 }
-

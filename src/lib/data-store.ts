@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Customer, Invoice, Job, Quote } from '@/lib/types';
+import type { Bike, Customer, Invoice, Job, Quote } from '@/lib/types';
 import {
   seedCustomers,
   seedInvoices,
   seedJobs,
   seedQuotes,
+  seedBikes,
 } from '@/lib/seed-data';
 import { db } from '@/lib/supabase';
 import {
@@ -29,6 +30,7 @@ const STORAGE_KEYS = {
   jobs: 'trademate.jobs.v1',
   quotes: 'trademate.quotes.v1',
   invoices: 'trademate.invoices.v1',
+  bikes: 'bikeclinic.bikes.v1',
 } as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -349,6 +351,30 @@ function usePersistedState<T>(storageKey: string, fallback: T) {
   }, [hydrated, state, storageKey]);
 
   return [state, setState, hydrated] as const;
+}
+
+// ─── useBikes ──────────────────────────────────────────────────────────────
+
+export function useBikes() {
+  const [bikes, setBikes] = useState<Bike[]>(seedBikes);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = safeParse<Bike[]>(
+      window.localStorage.getItem(STORAGE_KEYS.bikes),
+      seedBikes
+    );
+    setBikes(stored);
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || typeof window === 'undefined') return;
+    window.localStorage.setItem(STORAGE_KEYS.bikes, JSON.stringify(bikes));
+  }, [bikes, hydrated]);
+
+  return [bikes, setBikes, hydrated] as const;
 }
 
 // ─── Utility helpers ─────────────────────────────────────────────────────────

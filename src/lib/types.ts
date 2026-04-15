@@ -26,6 +26,40 @@ export interface Customer {
   status: CustomerStatus;
   notes: string;
   createdAt: string;
+  bikes?: Bike[];
+}
+
+export interface Bike {
+  id: string;
+  customerId: string;
+  brand: string;
+  model: string;
+  frameSize?: string;
+  frameColour?: string;
+  serialNumber?: string;
+  wheelSize?: string;
+  groupset?: string;
+  tyres?: string;
+  saddle?: string;
+  pedals?: string;
+  barTape?: string;
+  images: string[];
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BikeServiceRecord {
+  id: string;
+  bikeId: string;
+  jobId?: string;
+  date: string;
+  serviceType: string;
+  description: string;
+  mechanicNotes: string;
+  partsUsed: string[];
+  labourHours: number;
+  cost: number;
 }
 
 export interface JobTimelineEvent {
@@ -39,6 +73,7 @@ export interface JobTimelineEvent {
 export interface Job {
   id: string;
   customerId: string;
+  bikeId?: string;
   serviceType: string;
   description: string;
   price: number;
@@ -48,7 +83,17 @@ export interface Job {
   notes: string;
   photos: string[];
   timeline: JobTimelineEvent[];
+  serviceChecklist?: ServiceChecklistItem[];
   createdAt: string;
+}
+
+export interface ServiceChecklistItem {
+  id: string;
+  label: string;
+  category: string;
+  checked: boolean;
+  note?: string;
+  photo?: string;
 }
 
 export interface QuoteItem {

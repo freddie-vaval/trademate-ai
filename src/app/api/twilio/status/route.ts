@@ -28,7 +28,7 @@ export async function POST(request: Request) {
           status: 'completed',
           duration_seconds: duration,
           ended_at: new Date().toISOString(),
-        }});
+        }]);
 
         // Update session
         await supabase
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           call_sid: callSid,
           status: 'busy',
           duration_seconds: 0,
-        }});
+        }]);
         break;
       }
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
           call_sid: callSid,
           status: 'no_answer',
           duration_seconds: 0,
-        }});
+        }]);
 
         // If they requested a callback, flag it
         const { data: session } = await supabase
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
           call_sid: callSid,
           status: 'failed',
           duration_seconds: 0,
-        }});
+        }]);
 
         await supabase.from('notifications').insert([{
           type: 'call_failed',

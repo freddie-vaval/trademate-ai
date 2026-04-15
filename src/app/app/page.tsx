@@ -1,150 +1,52 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
+import { useJobs, useCustomers, formatMoney, fullName } from '@/lib/data-store';
+import { Job } from '@/lib/types';
 
-const supabase = createClient(
-  'https://ekzuplrsptshriwazeur.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrenVwbHJzcHRzaHJpd2F6ZXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjI4NTUsImV4cCI6MjA5MDUzODg1NX0.cAzLzlJUQSaYV8NtpEoZQoov39trGcELjt0G9GGNHzM'
-);
+const tabs = [
+  { id: 'app', label: '📋 Jobs', href: '/app' },
+  { id: 'bikes', label: '🚲 Bikes', href: '/app/bikes' },
+  { id: 'customers', label: '👥 Customers', href: '/app/customers' },
+  { id: 'money', label: '💰 Money', href: '/app/money' },
+];
 
-interface Job {
-  id: string;
-  customer_id: string;
-  service_type: string;
-  price: number;
-  status: string;
-  booked_date: string;
-  created_at: string;
-}
-
-interface Call {
-  id: string;
-  customer_name: string;
-  phone: string;
-  status: string;
-  duration_seconds: number;
-  summary: string;
-  created_at: string;
-}
-
-interface Customer {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Stats {
-  jobsThisMonth: number;
-  revenue: number;
-  pendingQuotes: number;
-  callsToday: number;
-}
-
-export default function Dashboard() {
-  const [stats, setStats] = useState<Stats>({ jobsThisMonth: 0, revenue: 0, pendingQuotes: 0, callsToday: 0 });
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [customers, setCustomers] = useState<Record<string, Customer>>({});
-  const [calls, setCalls] = useState<Call[]>([]);
+export default function AppDashboard() {
+  const [jobs, setJobs, jobsHydrated] = useJobs();
+  const [customers, , customersHydrated] = useCustomers();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).toISOString();
+    if (jobsHydrated && customersHydrated) setLoading(false);
+  }, [jobsHydrated, customersHydrated]);
 
-        // Fetch jobs this month
-        const { data: jobsData } = await supabase
-          .from('jobs')
-          .select('*')
-          .gte('created_at', monthStart)
-          .order('created_at', { ascending: false })
-          .limit(10);
+  // Next job = most recent job that isn't collected
+  const activeJobs = jobs.filter(j => j.status !== 'collected');
+  const nextJob = activeJobs[0] ?? null;
 
-        // Fetch all customers to map names
-        const { data: customersData } = await supabase
-          .from('customers')
-          .select('id, first_name, last_name')
-          .limit(100);
+  const customerMap = new Map(customers.map(c => [c.id, c]));
 
-        const customerMap: Record<string, Customer> = {};
-        customersData?.forEach(c => { customerMap[c.id] = c; });
-        setCustomers(customerMap);
-
-        // Calculate stats
-        const revenue = jobsData?.reduce((sum, j) => sum + (j.price || 0), 0) || 0;
-        setStats({
-          jobsThisMonth: jobsData?.length || 0,
-          revenue,
-          pendingQuotes: 0, // will add quote query
-          callsToday: 0,   // will add call query
-        });
-
-        setJobs(jobsData || []);
-
-        // Fetch calls
-        const { data: callsData } = await supabase
-          .from('calls')
-          .select('*')
-          .gte('created_at', todayStart)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        setCalls(callsData || []);
-
-        // Update calls today stat
-        setStats(prev => ({ ...prev, callsToday: callsData?.length || 0 }));
-
-        // Fetch pending quotes
-        const { count } = await supabase
-          .from('quotes')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'sent');
-
-        setStats(prev => ({ ...prev, pendingQuotes: count || 0 }));
-
-      } catch (err) {
-        console.error('Error fetching data:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-  }, []);
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
+  const markDone = () => {
+    if (!nextJob) return;
+    setJobs(jobs.map(j => j.id === nextJob.id ? { ...j, status: 'collected' as const } : j));
   };
 
-  const getCallOutcome = (call: Call) => {
-    if (call.status === 'completed') return 'Job Booked';
-    if (call.status === 'missed') return 'Missed';
-    return call.status;
+  const reschedule = () => {
+    if (!nextJob) return;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateStr = tomorrow.toISOString().slice(0, 10);
+    setJobs(jobs.map(j => j.id === nextJob.id ? { ...j, bookedDate: dateStr } : j));
   };
 
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', href: '/' },
-    { id: 'jobs', label: 'Jobs', href: '/jobs' },
-    { id: 'calendar', label: 'Calendar', href: '/calendar' },
-    { id: 'quotes', label: 'Quotes', href: '/quotes' },
-    { id: 'invoices', label: 'Invoices', href: '/invoices' },
-    { id: 'calls', label: 'Calls', href: '/calls' },
-    { id: 'social', label: 'Social', href: '/social' },
-    { id: 'customers', label: 'Customers', href: '/customers' },
-  ];
-
-  const statCards = [
-    { label: 'Jobs This Month', value: stats.jobsThisMonth, change: '+12%', color: '#3b82f6' },
-    { label: 'Revenue', value: `£${stats.revenue.toLocaleString()}`, change: '+8%', color: '#22c55e' },
-    { label: 'Pending Quotes', value: stats.pendingQuotes, change: '3 new', color: '#f97316' },
-    { label: 'Calls Today', value: stats.callsToday, change: 'AI active', color: '#ef4444' },
-  ];
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#6b7280' }}>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
@@ -157,12 +59,6 @@ export default function Dashboard() {
             </div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>TradeMate AI</h1>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>AI Receptionist: <span style={{ color: '#16a34a', fontWeight: '500' }}>Active</span></span>
-            <div style={{ width: '2.5rem', height: '2.5rem', backgroundColor: '#e5e7eb', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#4b5563', fontWeight: '500' }}>JD</span>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -170,12 +66,12 @@ export default function Dashboard() {
       <nav style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: '80rem', margin: '0 auto', display: 'flex', gap: '2rem' }}>
           {tabs.map((tab) => (
-            <Link 
+            <Link
               key={tab.id}
               href={tab.href}
-              style={{ 
-                padding: '1rem 0.5rem', 
-                fontWeight: '500', 
+              style={{
+                padding: '1rem 0.5rem',
+                fontWeight: '500',
                 borderBottom: '2px solid #e5e7eb',
                 color: '#6b7280',
                 textDecoration: 'none',
@@ -189,133 +85,99 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: '#6b7280' }}>
-            Loading your data...
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#374151', marginBottom: '1.5rem' }}>What do I do next?</h2>
+        </div>
+
+        {activeJobs.length === 0 ? (
+          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <p style={{ fontSize: '1.125rem', color: '#6b7280', marginBottom: '1rem' }}>No active jobs.</p>
+            <Link href='/app/jobs' style={{ color: '#2563eb', fontWeight: '500' }}>Go to Jobs →</Link>
           </div>
-        ) : (
-          <>
-            {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-              {statCards.map((stat, i) => (
-                <div key={i} style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                  <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>{stat.label}</p>
-                  <p style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#111827' }}>{stat.value}</p>
-                  <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', color: stat.color }}>{stat.change}</p>
+        ) : nextJob ? (
+          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+            {/* Next job header */}
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid #f3f4f6' }}>
+              <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginBottom: '0.5rem' }}>NEXT JOB</p>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827' }}>
+                {fullName(customerMap.get(nextJob.customerId)!) || 'Unknown'}
+              </h3>
+              <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>{nextJob.serviceType}</p>
+            </div>
+
+            {/* Details */}
+            <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>DATE</p>
+                <p style={{ fontWeight: '500', color: '#374151' }}>{nextJob.bookedDate} at {nextJob.bookedTime}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>PRICE</p>
+                <p style={{ fontWeight: '600', color: '#2563eb' }}>{formatMoney(nextJob.price)}</p>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>STATUS</p>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  backgroundColor: '#dbeafe',
+                  color: '#1d4ed8',
+                }}>
+                  {nextJob.status.replace('-', ' ')}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ padding: '1.5rem', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={markDone}
+                style={{ backgroundColor: '#2563eb', color: 'white', padding: '0.625rem 1.25rem', borderRadius: '0.5rem', fontWeight: '500', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+              >
+                ✓ Mark Done
+              </button>
+              <button
+                onClick={reschedule}
+                style={{ backgroundColor: 'white', color: '#374151', padding: '0.625rem 1.25rem', borderRadius: '0.5rem', fontWeight: '500', border: '1px solid #d1d5db', cursor: 'pointer', fontSize: '0.875rem' }}
+              >
+                ↺ Reschedule
+              </button>
+              <a
+                href={`tel:${customerMap.get(nextJob.customerId)?.phone ?? ''}`}
+                style={{ backgroundColor: 'white', color: '#374151', padding: '0.625rem 1.25rem', borderRadius: '0.5rem', fontWeight: '500', border: '1px solid #d1d5db', textDecoration: 'none', fontSize: '0.875rem' }}
+              >
+                📞 Call
+              </a>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Queue preview */}
+        {activeJobs.length > 1 && (
+          <div style={{ marginTop: '1.5rem' }}>
+            <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginBottom: '0.75rem', fontWeight: '500' }}>ALSO PENDING ({activeJobs.length - 1})</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {activeJobs.slice(1, 6).map(job => (
+                <div key={job.id} style={{ backgroundColor: 'white', borderRadius: '0.5rem', padding: '0.875rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <div>
+                    <p style={{ fontWeight: '500', color: '#374151', fontSize: '0.875rem' }}>
+                      {fullName(customerMap.get(job.customerId)!) || 'Unknown'}
+                    </p>
+                    <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{job.serviceType} · {job.bookedDate}</p>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280', backgroundColor: '#f3f4f6', padding: '0.2rem 0.6rem', borderRadius: '9999px' }}>
+                    {job.status.replace('-', ' ')}
+                  </span>
                 </div>
               ))}
             </div>
-
-            {/* Quick Actions */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-              <Link href="/calls" style={{ backgroundColor: '#2563eb', color: 'white', padding: '1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none' }}>
-                <div style={{ width: '3rem', height: '3rem', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📞</div>
-                <div>
-                  <p style={{ fontWeight: '600' }}>View Calls</p>
-                  <p style={{ fontSize: '0.875rem', color: '#bfdbfe' }}>AI Receptionist log</p>
-                </div>
-              </Link>
-
-              <Link href="/quotes" style={{ backgroundColor: '#16a34a', color: 'white', padding: '1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none' }}>
-                <div style={{ width: '3rem', height: '3rem', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📄</div>
-                <div>
-                  <p style={{ fontWeight: '600' }}>Create Quote</p>
-                  <p style={{ fontSize: '0.875rem', color: '#bbf7d0' }}>Generate PDF in seconds</p>
-                </div>
-              </Link>
-
-              <Link href="/jobs" style={{ backgroundColor: '#9333ea', color: 'white', padding: '1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none' }}>
-                <div style={{ width: '3rem', height: '3rem', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>➕</div>
-                <div>
-                  <p style={{ fontWeight: '600' }}>Add Job</p>
-                  <p style={{ fontSize: '0.875rem', color: '#e9d5ff' }}>Quick job entry</p>
-                </div>
-              </Link>
-            </div>
-
-            {/* Jobs & Calls Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
-              {/* Recent Jobs */}
-              <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-                  <h2 style={{ fontSize: '1.125rem', fontWeight: '600' }}>Recent Jobs</h2>
-                </div>
-                {jobs.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-                    No jobs yet. <Link href="/jobs" style={{ color: '#2563eb' }}>Add your first job →</Link>
-                  </div>
-                ) : (
-                  <div>
-                    {jobs.map((job) => {
-                      const customer = customers[job.customer_id];
-                      return (
-                        <div key={job.id} style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }}>
-                          <div>
-                            <p style={{ fontWeight: '500', color: '#111827' }}>{customer ? `${customer.first_name} ${customer.last_name}` : 'Unknown'}</p>
-                            <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>{job.service_type}</p>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <span style={{ 
-                              display: 'inline-block', 
-                              padding: '0.25rem 0.75rem', 
-                              borderRadius: '9999px', 
-                              fontSize: '0.75rem', 
-                              fontWeight: '500',
-                              backgroundColor: job.status === 'booked-in' ? '#dbeafe' : job.status === 'in-repair' ? '#fef3c7' : '#dcfce7',
-                              color: job.status === 'booked-in' ? '#1d4ed8' : job.status === 'in-repair' ? '#a16207' : '#15803d',
-                            }}>
-                              {job.status.replace('-', ' ')}
-                            </span>
-                            <p style={{ fontSize: '0.875rem', fontWeight: '500', marginTop: '0.25rem' }}>£{job.price}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Recent Calls */}
-              <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h2 style={{ fontSize: '1.125rem', fontWeight: '600' }}>AI Phone Receptionist</h2>
-                  <span style={{ fontSize: '0.875rem', color: '#16a34a', fontWeight: '500' }}>● Live</span>
-                </div>
-                {calls.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-                    No calls today. AI is standing by.
-                  </div>
-                ) : (
-                  <div>
-                    {calls.map((call) => (
-                      <div key={call.id} style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <div style={{ width: '2.5rem', height: '2.5rem', backgroundColor: '#dbeafe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>📞</div>
-                          <div>
-                            <p style={{ fontWeight: '500', color: '#111827' }}>{call.customer_name}</p>
-                            <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>{formatDuration(call.duration_seconds)}</p>
-                          </div>
-                        </div>
-                        <span style={{ 
-                          padding: '0.25rem 0.75rem', 
-                          borderRadius: '9999px', 
-                          fontSize: '0.75rem', 
-                          fontWeight: '500',
-                          backgroundColor: call.status === 'completed' ? '#dcfce7' : call.status === 'missed' ? '#fed7aa' : '#dbeafe',
-                          color: call.status === 'completed' ? '#15803d' : call.status === 'missed' ? '#c2410c' : '#1d4ed8',
-                        }}>
-                          {getCallOutcome(call)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ padding: '1rem', backgroundColor: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
-                  <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>Today's Summary: <strong>{stats.callsToday} calls</strong> · <strong>{stats.jobsThisMonth} jobs</strong> · <strong>£{stats.revenue.toLocaleString()}</strong> revenue</p>
-                </div>
-              </div>
-            </div>
-          </>
+            <Link href='/app/jobs' style={{ display: 'block', marginTop: '0.75rem', fontSize: '0.875rem', color: '#2563eb', fontWeight: '500' }}>
+              View all {activeJobs.length} jobs →
+            </Link>
+          </div>
         )}
       </main>
     </div>
