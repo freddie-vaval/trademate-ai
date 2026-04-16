@@ -450,7 +450,7 @@ export default function OnboardingPage() {
 
   const canNext = () => {
     switch (step) {
-      case 0: return data.name && data.email && data.phone && data.password.length >= 8;
+      case 0: return !!(data.name && data.email && data.phone && data.password.length >= 8);
       case 1: return !!data.trade;
       case 2: return !!data.teamSize;
       case 3: return !!data.currentTools;
