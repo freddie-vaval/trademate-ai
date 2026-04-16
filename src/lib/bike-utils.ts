@@ -1,4 +1,4 @@
-import { Job, JobStatus, Bike, Customer } from '../types';
+import { Job, JobStatus, Bike, Customer } from './types';
 
 export const BIKE_COLOURS = [
  'Black', 'White', 'Red', 'Blue', 'Green', 'Orange', 'Yellow',
