@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeMate AI - Stop losing work. Start running the job.</title>
+    <meta name="description" content="AI assistant for tradespeople. Never miss a call again. 24/7 booking, quotes, and job management.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --orange: #ff6b35;
+            --dark: #1a1a1a;
+            --gray: #666;
+            --light: #f9f9f9;
+            --white: #ffffff;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            padding: 20px 0;
+            position: fixed;
+            width: 100%;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-bottom: 1px solid #eee;
+        }
+        
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--orange);
+        }
+        
+        .logo span {
+            color: var(--dark);
+        }
+        
+        .cta-button {
+            background: var(--orange);
+            color: white;
+            padding: 12px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .cta-button:hover {
+            background: #e55a2b;
+            transform: translateY(-2px);
+        }
+        
+        /* Hero */
+        .hero {
+            padding: 180px 0 100px;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffffff 100%);
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 72px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            color: var(--dark);
+        }
+        
+        .hero h1 .line1 {
+            display: block;
+            color: var(--orange);
+        }
+        
+        .hero p {
+            font-size: 24px;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 60px;
+        }
+        
+        .btn-primary {
+            background: var(--orange);
+            color: white;
+            padding: 18px 36px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background: #e55a2b;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--dark);
+            padding: 18px 36px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            border: 2px solid var(--dark);
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--dark);
+            color: white;
+        }
+        
+        /* Pain Band */
+        .pain-band {
+            background: var(--dark);
+            padding: 60px 0;
+        }
+        
+        .pain-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 32px;
+        }
+        
+        .pain-point {
+            color: white;
+            padding: 20px;
+            border-left: 4px solid var(--orange);
+        }
+        
+        .pain-point h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .pain-point p {
+            color: #999;
+            font-size: 16px;
+            margin: 0;
+        }
+        
+        /* Quote Break */
+        .quote-break {
+            padding: 80px 0;
+            text-align: center;
+            background: #fff;
+        }
+        
+        .quote-break blockquote {
+            font-size: 32px;
+            font-weight: 600;
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--dark);
+            line-height: 1.4;
+        }
+        
+        .quote-break cite {
+            display: block;
+            margin-top: 20px;
+            color: var(--gray);
+            font-size: 18px;
+            font-style: normal;
+        }
+        
+        /* Features */
+        .features {
+            padding: 100px 0;
+            background: var(--light);
+        }
+        
+        .features h2 {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 60px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+        }
+        
+        .feature-card {
+            padding: 32px;
+            background: white;
+            border-radius: 16px;
+            transition: all 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 16px;
+        }
+        
+        .feature-card h3 {
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+        
+        .feature-card p {
+            color: var(--gray);
+        }
+        
+        /* Pricing */
+        .pricing {
+            padding: 100px 0;
+            background: var(--dark);
+        }
+        
+        .pricing h2 {
+            text-align: center;
+            font-size: 48px;
+            color: white;
+            margin-bottom: 16px;
+        }
+        
+        .pricing-intro {
+            text-align: center;
+            color: #999;
+            font-size: 20px;
+            max-width: 600px;
+            margin: 0 auto 60px;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .pricing-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .pricing-card.featured {
+            border: 3px solid var(--orange);
+            transform: scale(1.05);
+        }
+        
+        .pricing-card h3 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .price {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--orange);
+            margin-bottom: 8px;
+        }
+        
+        .price span {
+            font-size: 16px;
+            color: var(--gray);
+            font-weight: 400;
+        }
+        
+        .pricing-card ul {
+            list-style: none;
+            margin: 24px 0;
+            text-align: left;
+        }
+        
+        .pricing-card li {
+            padding: 8px 0;
+            color: #444;
+        }
+        
+        .pricing-card li::before {
+            content: '✓';
+            color: var(--orange);
+            margin-right: 12px;
+            font-weight: bold;
+        }
+        
+        /* Signup */
+        .signup {
+            padding: 100px 0;
+            background: linear-gradient(135deg, var(--orange) 0%, #ff8c5a 100%);
+        }
+        
+        .signup h2 {
+            text-align: center;
+            font-size: 48px;
+            color: white;
+            margin-bottom: 16px;
+        }
+        
+        .signup .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .signup-form {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--orange);
+        }
+        
+        .form-submit {
+            width: 100%;
+            background: var(--orange);
+            color: white;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .form-submit:hover {
+            background: #e55a2b;
+        }
+        
+        .assurance {
+            text-align: center;
+            margin-top: 16px;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+        }
+        
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            color: var(--gray);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 42px;
+            }
+            
+            .hero p {
+                font-size: 18px;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .features h2, .pricing h2, .signup h2 {
+                font-size: 36px;
+            }
+            
+            .quote-break blockquote {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">TradeMate<span>AI</span></div>
+            <a href="#signup" class="cta-button">Join Waitlist</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>
+                <span class="line1">Stop losing work.</span>
+                Start running the job.
+            </h1>
+            <p>Your AI assistant that answers calls, sends quotes, and books jobs—24/7. So you can focus on the actual work.</p>
+            <div class="hero-buttons">
+                <a href="#signup" class="btn-primary">Get Early Access</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="pain-band">
+        <div class="container">
+            <div class="pain-grid">
+                <div class="pain-point">
+                    <h3>📞 Missing calls = missing money</h3>
+                    <p>Every ring you miss is a customer going to your competitor.</p>
+                </div>
+                <div class="pain-point">
+                    <h3>📋 The paperwork never ends</h3>
+                    <p>Quotes, invoices, tax returns. You'd rather be on a roof than at a desk.</p>
+                </div>
+                <div class="pain-point">
+                    <h3>📱 "Just post on Facebook"</h3>
+                    <p>You're a tradesperson, not a social media manager. But you need the work.</p>
+                </div>
+                <div class="pain-point">
+                    <h3>💸 Getting taken for a ride</h3>
+                    <p>Parts marked up, hours inflated. You just want an honest living.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="quote-break">
+        <div class="container">
+            <blockquote>
+                "You became a sparky to work with your hands, not to become an accountant."
+            </blockquote>
+            <cite>— Every tradesperson we've spoken to</cite>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2>What It Does</h2>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📞</div>
+                    <h3>Never miss a job</h3>
+                    <p>AI answers every call, 24/7. Even at 11pm. Books the job while you're finishing up.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h3>Get evenings back</h3>
+                    <p>Quotes and invoices in seconds, not hours. Send with a tap. Done.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Stay visible</h3>
+                    <p>Posts to your socials automatically. Keeps your name out there while you work.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Know your numbers</h3>
+                    <p>Track income, expenses, and profit per job. No more guessing.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>The scam filter</h3>
+                    <p>Checks customers before you commit. Flags time-wasters, verifies genuine leads.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3>Gets smarter</h3>
+                    <p>Learns your prices, your availability, your customers. The more you use it, the better it gets.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing">
+        <div class="container">
+            <h2>Simple Pricing</h2>
+            <p class="pricing-intro">We know what it's like to get stung. That's why we built this like a cheap part-time office manager—works twice as hard for half the price.</p>
+            
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>Starter</h3>
+                    <div class="price">£99<span>/mo</span></div>
+                    <ul>
+                        <li>AI phone receptionist</li>
+                        <li>Up to 50 contacts</li>
+                        <li>Basic quotes & invoices</li>
+                        <li>Email support</li>
+                    </ul>
+                    <a href="#signup" class="btn-secondary" style="display:block; text-decoration:none;">Join Waitlist</a>
+                </div>
+                
+                <div class="pricing-card featured">
+                    <h3>Pro</h3>
+                    <div class="price">£199<span>/mo</span></div>
+                    <ul>
+                        <li>Everything in Starter</li>
+                        <li>Unlimited contacts</li>
+                        <li>Job scheduling</li>
+                        <li>Auto social media</li>
+                        <li>Financial tracking</li>
+                        <li>Priority support</li>
+                    </ul>
+                    <a href="#signup" class="btn-primary" style="display:block; text-decoration:none;">Join Waitlist</a>
+                </div>
+                
+                <div class="pricing-card">
+                    <h3>Business</h3>
+                    <div class="price">£499<span>/mo</span></div>
+                    <ul>
+                        <li>Everything in Pro</li>
+                        <li>Multiple users</li>
+                        <li>API access</li>
+                        <li>Custom integrations</li>
+                        <li>Dedicated account manager</li>
+                    </ul>
+                    <a href="#signup" class="btn-secondary" style="display:block; text-decoration:none;">Contact Us</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="signup" id="signup">
+        <div class="container">
+            <h2>First 100 = Half Price Forever</h2>
+            <p class="subtitle">First-come, first-served. When we're full, we're full.</p>
+            
+            <form class="signup-form" onsubmit="handleSubmit(event)">
+                <div class="form-group">
+                    <label>Your Name</label>
+                    <input type="text" name="name" required placeholder="John">
+                </div>
+                <div class="form-group">
+                    <label>Business Name</label>
+                    <input type="text" name="business" required placeholder="J Smith Plumbing">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" required placeholder="john@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" name="phone" required placeholder="07123 456789">
+                </div>
+                <div class="form-group">
+                    <label>What trade are you in?</label>
+                    <input type="text" name="trade" required placeholder="Plumber, Electrician, etc.">
+                </div>
+                <button type="submit" class="form-submit">Claim My Spot</button>
+            </form>
+            
+            <p class="assurance">No funny business. Unsubscribe anytime. We won't share your details.</p>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>© 2026 TradeMate AI. Built by tradespeople, for tradespeople.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://ekzuplrsptshriwazeur.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrenVwbHJzcHRzaHJpd2F6ZXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjI4NTUsImV4cCI6MjA5MDUzODg1NX0.cAzLzlJUQSaYV8NtpEoZQoov39trGcELjt0G9GGNHzM'
+        );
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                name: form.name.value,
+                business: form.business.value,
+                email: form.email.value,
+                phone: form.phone.value,
+                trade: form.trade.value
+            };
+
+            // Send to Supabase
+            const { error } = await supabase
+                .from('waitlist')
+                .insert([data]);
+
+            if (error) {
+                alert('Something went wrong: ' + error.message);
+                return;
+            }
+
+            alert('Spot claimed! We\'ll be in touch soon.');
+            form.reset();
+        }
+    </script>
+</body>
+</html>

@@ -54,7 +54,7 @@ export default function BikesPage() {
   const ready = bikesHydrated && customersHydrated && jobsHydrated;
   const bikesWithInfo = getBikesWithCustomerInfo(bikes, customers, jobs);
 
-  const filteredBikes = bikesWithInfo.filter(bike => {
+  const filteredBikes = bikesWithInfo.filter((bike: { brand: string; model: string; customerName: string; serialNumber?: string }) => {
     if (!search.trim()) return true;
     const s = search.toLowerCase();
     return (
@@ -183,7 +183,7 @@ export default function BikesPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <h2 style={{ fontSize: '26px', fontWeight: '800', color: '#111827', marginBottom: '4px' }}>
-                      {bike.brand || 'Unknown'} {bike.model || 'Bike'}
+                      {selectedBike.brand || 'Unknown'} {selectedBike.model || 'Bike'}
                     </h2>
                     <p style={{ color: '#6b7280', fontSize: '15px' }}>{formatBikeSubtitle(selectedBike)}</p>
                   </div>

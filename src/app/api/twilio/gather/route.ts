@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { generateTwiml } from '@/lib/twilio';
-import { processDtmfInput } from '@/lib/ai-voice';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(

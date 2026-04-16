@@ -1,0 +1,48 @@
+TRADEMATE AI - OUTREACH SCRIPT
+================================
+
+Hi [NAME],
+
+[IF CALLING:]
+Hi [NAME], this is [YOUR NAME] from TradeMate AI. Got 30 seconds?
+
+[IF DMING:]
+Hey [NAME]! Quick question...
+
+---
+
+THE PITCH:
+
+"I've built an AI assistant for tradespeople - basically like having a receptionist that answers your phone 24/7, sends quotes, books jobs - all automatically.
+
+I know how it is - you're on a job, phone rings, you lose another customer. This solves that.
+
+We're giving early access to the first 100 tradespeople - they'd get half price forever.
+
+Are you the kind of person who'd find that useful?"
+
+---
+
+HANDLE OBJECTIONS:
+
+"If it doesn't work" → "There's a free trial, nothing to lose"
+"Too expensive" → "It's £29/mo - less than 1 hour of your time per month"
+"I already have something" → "This is AI-first - it actually thinks, doesn't just store data"
+
+---
+
+CLOSE:
+
+"Can I send you the link? It's at TradeMateAI.co.uk"
+
+Or
+
+"Can I book 5 minutes to show you how it works?"
+
+---
+
+REMEMBER:
+- Be brief, be human
+- They can say no - that's fine
+- 1 yes = everything worth it
+
