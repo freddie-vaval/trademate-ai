@@ -1,4 +1,5 @@
 export type JobStatus =
+  | 'quoted'
   | 'booked-in'
   | 'diagnosis'
   | 'awaiting-parts'
